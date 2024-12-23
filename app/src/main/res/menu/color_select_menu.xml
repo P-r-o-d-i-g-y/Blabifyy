@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/mark_black"
+        android:title="Черный"/>
+    <item android:id="@+id/mark_blue"
+        android:title="Синий"/>
+    <item android:id="@+id/mark_yellow"
+        android:title="Желтый"/>
+    <item android:id="@+id/reset_filter"
+        android:title="Сбросить фильтрацию"/>
+</menu>

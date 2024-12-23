@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="0dp"
+        android:background="#2F5047">
+
+        <!-- Иконка с закладкой -->
+        <FrameLayout
+            android:layout_width="90dp"
+            android:layout_height="70dp">
+
+            <!-- Иконка чата -->
+            <ImageView
+                android:id="@+id/chat_icon"
+                android:layout_marginTop="16dp"
+                android:layout_marginStart="30dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/chat_av"
+                android:scaleType="centerCrop" />
+
+            <!-- Закладка поверх изображения -->
+            <ImageView
+                android:id="@+id/bookmark_icon"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:src="@drawable/mark"
+                />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Название чата -->
+            <TextView
+                android:id="@+id/chat_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Название 1"
+                android:textSize="20sp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+
+            <!-- Описание или статус -->
+            <TextView
+                android:id="@+id/chat_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Вы: отредактировать..."
+                android:textColor="#B0B0B0"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
