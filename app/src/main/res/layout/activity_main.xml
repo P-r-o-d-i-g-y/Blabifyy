@@ -88,27 +88,53 @@
             android:layout_height="match_parent"
             android:layout_weight="0.1"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingTop="20dp">
 
-            <Button
-                android:id="@+id/button1"
+            <ImageButton
+                android:id="@+id/btn_search"
+                android:contentDescription="Поиск"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="1"/>
+                android:src="@drawable/nav_search"
+                android:background="@android:color/transparent"/>
 
-            <Button
-                android:id="@+id/button2"
+            <ImageButton
+                android:contentDescription="Карта"
+                android:id="@+id/btn_map"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="2"
-                android:layout_marginTop="16dp"/>
+                android:src="@drawable/nav_map"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/transparent"/>
 
-            <Button
-                android:id="@+id/button3"
+            <ImageButton
+                android:contentDescription="Файлы"
+                android:id="@+id/btn_tree"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="3"
-                android:layout_marginTop="16dp"/>
+                android:src="@drawable/nav_tree"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/transparent"/>
+
+            <ImageButton
+                android:contentDescription="Дедлайны"
+                android:id="@+id/btn_deadlines"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/nav_deadlines"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/transparent"/>
+
+            <ImageButton
+                android:contentDescription="Настройки"
+                android:id="@+id/btn_settings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/nav_settings"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/transparent"/>
         </LinearLayout>
 
             <!-- RecyclerView (2/3 экрана) -->
