@@ -1,4 +1,4 @@
-package com.test.blabify
+package com.test.blabify.domain.models
 
 data class ChatItem(
     val title: String,

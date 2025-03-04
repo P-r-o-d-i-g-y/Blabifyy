@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#698579"
-    tools:context=".MainActivity">
+    tools:context=".presentation.ui.ChatsActivity">
 
     <!-- Узкое меню (свернутое) -->
     <com.google.android.material.navigation.NavigationView

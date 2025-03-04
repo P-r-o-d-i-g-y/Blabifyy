@@ -1,4 +1,4 @@
-package com.test.blabify
+package com.test.blabify.presentation.adapters
 
 import android.view.LayoutInflater
 import android.view.View
@@ -6,6 +6,8 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.test.blabify.R
+import com.test.blabify.domain.models.ChatItem
 
 class ChatAdapter(
     private val chatList: List<ChatItem>

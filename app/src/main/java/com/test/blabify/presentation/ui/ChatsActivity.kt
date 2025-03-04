@@ -1,4 +1,4 @@
-package com.test.blabify
+package com.test.blabify.presentation.ui
 
 import android.os.Bundle
 import android.view.View
@@ -12,8 +12,11 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.navigation.NavigationView
 import android.widget.PopupMenu
+import com.test.blabify.R
+import com.test.blabify.domain.models.ChatItem
+import com.test.blabify.presentation.adapters.ChatAdapter
 
-class MainActivity : AppCompatActivity() {
+class ChatsActivity : AppCompatActivity() {
     private var selectedColor: String = "all"
 
     private lateinit var recyclerView: RecyclerView
