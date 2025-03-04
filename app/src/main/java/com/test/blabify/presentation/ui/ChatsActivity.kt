@@ -24,8 +24,7 @@ class ChatsActivity : AppCompatActivity() {
     private val chatList = mutableListOf<ChatItem>()
     private lateinit var originalChatList: List<ChatItem>
     private lateinit var drawerLayout: DrawerLayout
-    private lateinit var smallNavView: NavigationView
-    private lateinit var fullNavView: NavigationView
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,21 +40,8 @@ class ChatsActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         drawerLayout = findViewById(R.id.drawer_layout)
-        smallNavView = findViewById(R.id.small_nav_view)
-        fullNavView = findViewById(R.id.full_nav_view)
 
 
-        // Открытие полного меню при нажатии на узкое меню
-        smallNavView.setNavigationItemSelectedListener {
-            toggleNavigationMenu()
-            true
-        }
-
-        // Закрытие полного меню при нажатии на пункт
-        fullNavView.setNavigationItemSelectedListener {
-            toggleNavigationMenu()
-            true
-        }
 
 
 
@@ -78,18 +64,7 @@ class ChatsActivity : AppCompatActivity() {
         }
 
     }
-    // Логика переключения меню
-    private fun toggleNavigationMenu() {
-        if (smallNavView.visibility == NavigationView.VISIBLE) {
-            smallNavView.visibility = NavigationView.GONE
-            fullNavView.visibility = NavigationView.VISIBLE
-            drawerLayout.openDrawer(fullNavView)
-        } else {
-            fullNavView.visibility = NavigationView.GONE
-            smallNavView.visibility = NavigationView.VISIBLE
-            drawerLayout.closeDrawer(fullNavView)
-        }
-    }
+
     private fun showColorPopup(view: View) {
         val popup = PopupMenu(this, view)
         popup.menuInflater.inflate(R.menu.color_select_menu, popup.menu)
