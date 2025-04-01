@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_screen"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#698579"
+    tools:context=".presentation.ui.MainScreen">
+
+    <!-- Основное содержимое -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Toolbar с иконками -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#2F5047"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp">
+
+                <ImageView
+                    android:id="@+id/home_icon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/home"
+                    android:contentDescription=""
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+                <!-- Название "Тема 1" -->
+                <TextView
+                    android:id="@+id/toolbar_title"
+                    android:layout_width="230dp"
+                    android:layout_height="33dp"
+                    android:layout_marginStart="60dp"
+                    android:background="@drawable/toolbar_background"
+                    android:text="Название 1"
+                    android:textColor="@android:color/black"
+                    android:gravity="center"
+                    android:textSize="20dp"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    app:layout_constraintStart_toEndOf="@id/home_icon"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/mark_icon"/>
+
+                <!-- Иконка "Закладка" -->
+                <ImageView
+                    android:id="@+id/mark_icon"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:src="@drawable/mark_search"
+                    android:contentDescription=""
+                    app:layout_constraintStart_toEndOf="@id/toolbar_title"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_marginStart="10dp"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </androidx.appcompat.widget.Toolbar>
+
+        <!-- RecyclerView (основной контент) -->
+        <LinearLayout
+            android:id="@+id/content_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/toolbar"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <!-- Блок кнопок (1/3 экрана) -->
+            <LinearLayout
+                android:id="@+id/button_container"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.1"
+                android:orientation="vertical"
+                android:paddingStart="7dp"
+                android:paddingEnd="7dp"
+                android:paddingTop="20dp">
+
+                <ImageButton
+                    android:id="@+id/btn_search"
+                    android:contentDescription="Поиск"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/nav_search"
+                    android:background="@android:color/transparent"/>
+
+                <ImageButton
+                    android:contentDescription="Карта"
+                    android:id="@+id/btn_map"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/nav_map"
+                    android:layout_marginTop="20dp"
+                    android:background="@android:color/transparent"/>
+
+                <ImageButton
+                    android:contentDescription="Файлы"
+                    android:id="@+id/btn_tree"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/nav_tree"
+                    android:layout_marginTop="20dp"
+                    android:background="@android:color/transparent"/>
+
+                <ImageButton
+                    android:contentDescription="Дедлайны"
+                    android:id="@+id/btn_deadlines"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/nav_deadlines"
+                    android:layout_marginTop="20dp"
+                    android:background="@android:color/transparent"/>
+
+                <ImageButton
+                    android:contentDescription="Настройки"
+                    android:id="@+id/btn_settings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/nav_settings"
+                    android:layout_marginTop="20dp"
+                    android:background="@android:color/transparent"/>
+            </LinearLayout>
+
+
+            <FrameLayout
+                android:id="@+id/fragment_container"
+                android:layout_width="0dp"
+                android:layout_weight="0.4"
+                android:layout_height="match_parent" />
+        </LinearLayout>
+
+        <!-- Кнопка загрузки -->
+        <ImageButton
+            android:id="@+id/download_button"
+            android:elevation="30dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/create"
+            android:background="@android:color/transparent"
+            android:layout_marginTop="550dp"
+            android:layout_marginRight="300dp"
+            app:layout_constraintTop_toBottomOf="@id/toolbar"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:contentDescription="Кнопка"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

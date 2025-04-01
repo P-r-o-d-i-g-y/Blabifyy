@@ -12,17 +12,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Blabify"
         tools:targetApi="31">
+        <activity
+            android:name=".presentation.ui.MainScreen"
+            android:exported="false" />
         <!-- Splash — главный экран -->
         <activity
             android:name=".presentation.ui.Splash"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- Остальные экраны -->
+        </activity> <!-- Остальные экраны -->
         <activity
             android:name=".presentation.ui.ChatsActivity"
             android:exported="false" />
