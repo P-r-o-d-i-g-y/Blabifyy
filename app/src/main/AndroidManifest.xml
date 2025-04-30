@@ -13,9 +13,14 @@
         android:theme="@style/Theme.Blabify"
         tools:targetApi="31">
         <activity
-            android:name=".presentation.ui.MainScreen"
+            android:name=".presentation.ui.Chat"
             android:exported="false" />
-        <!-- Splash — главный экран -->
+        <activity
+            android:name=".presentation.ui.Onboarding"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.ui.MainScreen"
+            android:exported="false" /> <!-- Splash — главный экран -->
         <activity
             android:name=".presentation.ui.Splash"
             android:exported="true">

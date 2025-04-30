@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.android.application)
     id("org.jetbrains.kotlin.kapt")
+
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -48,4 +50,15 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // BOM — набор версий всех библиотек Firebase
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+
+    // Базовая аналитика (можно удалить, если не нужна)
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Добавляй нужные тебе модули:
+    // implementation("com.google.firebase:firebase-auth")
+    // implementation("com.google.firebase:firebase-firestore")
+    // implementation("com.google.firebase:firebase-storage")
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "769086613678",
+    "project_id": "blabify-a0665",
+    "storage_bucket": "blabify-a0665.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:769086613678:android:ce2e52859fe2784c15e53f",
+        "android_client_info": {
+          "package_name": "com.test.blabify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7K2v7aZAQOuKIu9Wwl5yxrZWwxvcjwJk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
