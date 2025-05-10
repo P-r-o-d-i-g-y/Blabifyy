@@ -148,7 +148,7 @@
 
         <!-- Кнопка загрузки -->
         <ImageButton
-            android:id="@+id/download_button"
+            android:id="@+id/crate_button"
             android:elevation="10dp"
             android:layout_width="64dp"
             android:layout_height="64dp"

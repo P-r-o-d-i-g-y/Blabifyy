@@ -7,16 +7,16 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.test.blabify.R
-import com.test.blabify.domain.models.ChatItem
+import com.test.blabify.domain.models.ChatRoom
 
 class ChatAdapter(
-    private val chatList: List<ChatItem>,
-    private val onItemClick: (ChatItem) -> Unit
+    private val chatList: List<ChatRoom>,
+    private val onItemClick: (ChatRoom) -> Unit
 ) : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
 
-    private var filteredChatList: List<ChatItem> = chatList
+    private var filteredChatList: List<ChatRoom> = chatList
 
-    fun updateList(newList: List<ChatItem>) {
+    fun updateList(newList: List<ChatRoom>) {
         filteredChatList = newList
         notifyDataSetChanged()
     }
