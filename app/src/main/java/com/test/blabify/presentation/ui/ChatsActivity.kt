@@ -1,5 +1,6 @@
 package com.test.blabify.presentation.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -55,7 +56,11 @@ class ChatsActivity : AppCompatActivity() {
         chatList.add(ChatItem("Название 6", "Вы: привет...", R.drawable.chat_av, "yellow"))
 
         originalChatList = chatList.toList()  // Сохраняем полный список
-        adapter = ChatAdapter(chatList)
+        adapter = ChatAdapter(chatList) { chatItem ->
+            val intent = Intent(this, Chat::class.java)
+            // можно добавить: intent.putExtra("chatTitle", chatItem.title)
+            startActivity(intent)
+        }
         recyclerView.adapter = adapter
         // Устанавливаем обработчик нажатия на mark_icon
         val markIcon: ImageView = findViewById(R.id.mark_icon)

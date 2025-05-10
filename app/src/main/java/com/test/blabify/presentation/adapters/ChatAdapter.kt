@@ -10,7 +10,8 @@ import com.test.blabify.R
 import com.test.blabify.domain.models.ChatItem
 
 class ChatAdapter(
-    private val chatList: List<ChatItem>
+    private val chatList: List<ChatItem>,
+    private val onItemClick: (ChatItem) -> Unit
 ) : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
 
     private var filteredChatList: List<ChatItem> = chatList
@@ -52,6 +53,10 @@ class ChatAdapter(
         }
         holder.itemView.findViewById<ImageView>(R.id.bookmark_icon).setImageResource(markIconRes)
 
+        // ⬇ Обработчик нажатия
+        holder.itemView.setOnClickListener {
+            onItemClick(chatItem)
+        }
     }
 
 }
