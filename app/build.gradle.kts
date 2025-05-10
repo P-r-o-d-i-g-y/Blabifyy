@@ -58,7 +58,8 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
 
     // Добавляй нужные тебе модули:
-    // implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-database")
     // implementation("com.google.firebase:firebase-firestore")
     // implementation("com.google.firebase:firebase-storage")
 }

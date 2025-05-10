@@ -30,7 +30,7 @@ class Splash : AppCompatActivity() {
 
         // Переход на следующий экран (например, онбординг)
         Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(this, ChatsActivity::class.java) // замени при необходимости
+            val intent = Intent(this, Autorization::class.java) // замени при необходимости
             startActivity(intent)
             finish()
         }, 4000)
