@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#567769"
+    tools:context=".presentation.ui.Autorization">
+
+    <!-- Заголовок -->
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ВХОД В АККАУНТ"
+        android:layout_marginTop="140dp"
+        android:textColor="@android:color/white"
+        android:textSize="35sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_margin="100dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Логин -->
+    <EditText
+        android:id="@+id/login"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="60dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginEnd="40dp"
+        android:hint="Введите логин"
+        android:background="@drawable/edit_text_login"
+        android:padding="12dp"
+        android:textSize="24sp"
+        android:textColorHint="#888"
+        android:textColor="#000"
+        app:layout_constraintTop_toBottomOf="@id/title"
+        app:layout_constraintTop_margin="32dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Пароль + иконка -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/passwordContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginEnd="40dp"
+        app:layout_constraintTop_toBottomOf="@id/login"
+        app:layout_constraintTop_margin="160dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:padding="12dp"
+            android:hint="Введите пароль"
+            android:background="@drawable/edit_text_login"
+            android:inputType="textPassword"
+            android:textSize="24sp"
+            android:paddingStart="12dp"
+            android:paddingEnd="40dp"
+            android:textColorHint="#888"
+            android:textColor="#000"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <ImageView
+            android:id="@+id/toggle_password"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/open_eye"
+            android:contentDescription="Показать пароль"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginEnd="12dp"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Забыли пароль -->
+    <TextView
+        android:id="@+id/forgot_password"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="40dp"
+        android:text="Забыли пароль?"
+        android:textColor="#B3FFFFFF"
+        android:textSize="20sp"
+        app:layout_constraintTop_toBottomOf="@id/passwordContainer"
+        app:layout_constraintTop_margin="8dp"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Зарегистрироваться -->
+    <TextView
+        android:id="@+id/register"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Нет аккаунта? Зарегистрироваться"
+        android:textColor="#B3FFFFFF"
+        android:textSize="20sp"
+        android:layout_marginTop="45dp"
+        app:layout_constraintTop_toBottomOf="@id/forgot_password"
+        app:layout_constraintTop_margin="32dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Кнопка Войти -->
+
+    <ImageButton
+        android:id="@+id/btnLogin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:src="@drawable/come_in"
+        android:background="@android:color/transparent"
+        app:layout_constraintTop_toBottomOf="@id/register"
+        android:contentDescription="Войти"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
