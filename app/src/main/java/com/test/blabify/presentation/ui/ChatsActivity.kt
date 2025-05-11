@@ -2,7 +2,9 @@ package com.test.blabify.presentation.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +22,10 @@ import com.test.blabify.R
 import com.test.blabify.data.FirebaseUtil
 import com.test.blabify.domain.models.ChatRoom
 import com.test.blabify.presentation.adapters.ChatAdapter
+import java.util.UUID
+import androidx.appcompat.app.AlertDialog
+import com.google.firebase.firestore.FirebaseFirestore
+import com.test.blabify.domain.models.Folder
 
 class ChatsActivity : AppCompatActivity() {
     private var selectedColor: String = "all"
@@ -54,6 +60,12 @@ class ChatsActivity : AppCompatActivity() {
         //chatList.add(ChatItem("Название 5", "Вы: сообщений нет", R.drawable.chat_av, "blue"))
         //chatList.add(ChatItem("Название 6", "Вы: привет...", R.drawable.chat_av, "yellow"))
 
+        val treeButton = findViewById<ImageButton>(R.id.btn_tree)
+        treeButton.setOnClickListener {
+            val intent = Intent(this, Folders::class.java)
+            startActivity(intent)
+        }
+
         originalChatList = chatList.toList()  // Сохраняем полный список
         adapter = ChatAdapter(chatList) { chatRoom ->
             val intent = Intent(this, Chat::class.java)
@@ -73,7 +85,7 @@ class ChatsActivity : AppCompatActivity() {
 
         val createButton = findViewById<ImageButton>(R.id.crate_button)
         createButton.setOnClickListener {
-            createNewChatRoom()
+            showChatNameDialog()
         }
 
     }
@@ -137,15 +149,17 @@ class ChatsActivity : AppCompatActivity() {
             Toast.makeText(this, "Ошибка загрузки чатов", Toast.LENGTH_SHORT).show()
         }
     }
-    private fun createNewChatRoom() {
+    private fun createNewChatRoom(chatName: String) {
         val database = FirebaseDatabase.getInstance("https://blabify-a0665-default-rtdb.europe-west1.firebasedatabase.app/")
         val chatRoomsRef = database.getReference("chatRooms")
 
         val chatId = chatRoomsRef.push().key ?: return // генерируем уникальный ID
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown"
+
         val newChatRoom = ChatRoom(
             chatId = chatId,
-            title = "чат1",
-            participantIds = listOf(FirebaseAuth.getInstance().currentUser?.uid ?: "unknown")
+            title = chatName,
+            participantIds = listOf(uid)
         )
 
         val completeChatRoom = newChatRoom.copy(
@@ -157,8 +171,55 @@ class ChatsActivity : AppCompatActivity() {
         chatRoomsRef.child(chatId).setValue(completeChatRoom).addOnSuccessListener {
             chatList.add(completeChatRoom)
             adapter.updateList(chatList)
+            Log.d("FIRESTORE_DEBUG", "createAssociatedFolder() called for chat: $chatName ($chatId)")
+            createAssociatedFolder(chatId, chatName, uid)
         }.addOnFailureListener {
             Toast.makeText(this, "Ошибка создания чата: ${it.message}", Toast.LENGTH_SHORT).show()
         }
     }
+    private fun createAssociatedFolder(chatId: String, name: String, userId: String) {
+        Log.d("FIRESTORE_DEBUG", "Attempting to write folder to Firestore")
+        val folderId = UUID.randomUUID().toString()
+        val folder = Folder(
+            id = folderId,
+            name = name,
+            chatId = chatId,
+            createdBy = userId,
+            createdAt = System.currentTimeMillis(),
+            parentId = null,
+            topicId = null
+        )
+        Log.d("FIRESTORE_DEBUG", "User ID: ${userId}, Folder Name: ${name}")
+        FirebaseFirestore.getInstance()
+            .collection("folders")
+            .document(folderId)
+            .set(folder)
+            .addOnSuccessListener {
+                Log.d("FIRESTORE_DEBUG", "Folder successfully written to Firestore")
+                Toast.makeText(this, "Папка создана", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Log.e("FIRESTORE_DEBUG", "Error writing folder to Firestore: ${it.message}", it)
+                Toast.makeText(this, "Ошибка создания папки: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+    private fun showChatNameDialog() {
+        val input = EditText(this)
+        input.hint = "Введите название чата"
+
+        AlertDialog.Builder(this)
+            .setTitle("Новый чат")
+            .setView(input)
+            .setPositiveButton("Создать") { _, _ ->
+                val chatName = input.text.toString().trim()
+                if (chatName.isNotEmpty()) {
+                    createNewChatRoom(chatName)
+                } else {
+                    Toast.makeText(this, "Название чата не может быть пустым", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
 }

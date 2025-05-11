@@ -94,7 +94,7 @@
 
     <!-- 📝 RecyclerView (сообщения) -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_view_messages"
+        android:id="@+id/recycler_view_folders"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintTop_toBottomOf="@id/folder_info_bar"
