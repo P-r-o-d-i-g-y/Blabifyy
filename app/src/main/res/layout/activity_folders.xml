@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#829B90"
+    tools:context=".presentation.ui.Folders">
+
+    <LinearLayout
+        android:id="@+id/folder_info_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#829B90"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal">
+            <ImageButton
+                android:id="@+id/btn_back"
+                android:contentDescription="назад"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scaleType="fitCenter"
+                android:layout_margin="5dp"
+                android:src="@drawable/back_frame"
+                android:background="@android:color/transparent"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/chat_info_bg"
+            android:layout_weight="4"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="5dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Проводник"
+                android:layout_marginStart="10dp"
+                android:includeFontPadding="false"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-thin"
+                android:textSize="36sp" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <ImageButton
+                android:id="@+id/btn_settings"
+                android:contentDescription="поиск"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="10dp"
+                android:src="@drawable/big_settings"
+                android:background="@android:color/transparent"/>
+
+            <ImageButton
+                android:id="@+id/btn_search"
+                android:contentDescription="поиск"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="10dp"
+                android:src="@drawable/search_inchat"
+                android:background="@android:color/transparent"/>
+
+
+
+        </LinearLayout>
+
+
+
+    </LinearLayout>
+
+    <!-- 📝 RecyclerView (сообщения) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view_messages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/folder_info_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:padding="8dp" />
+
+    <ImageButton
+        android:id="@+id/crate_button"
+        android:elevation="10dp"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/add_smthg"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginStart="36dp"
+        android:layout_marginBottom="36dp"
+        android:contentDescription="Кнопка"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

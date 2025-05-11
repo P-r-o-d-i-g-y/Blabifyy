@@ -13,6 +13,9 @@
         android:theme="@style/Theme.Blabify"
         tools:targetApi="31">
         <activity
+            android:name=".presentation.ui.Folders"
+            android:exported="false" />
+        <activity
             android:name=".presentation.ui.Registration"
             android:exported="false" />
         <activity
