@@ -115,7 +115,9 @@ class Folders : AppCompatActivity() {
                     // Добавляем новую папку в Firestore
                     FirebaseFirestore.getInstance()
                         .collection("folders")
-                        .document(newFolderId)
+                        .document(parentId ?: "")  // Идентификатор родительской папки
+                        .collection("childFolders") // Вложенная коллекция для дочерних папок
+                        .document(newFolderId) // Уникальный ID дочерней папки
                         .set(newFolder)
                         .addOnSuccessListener {
                             // Обновляем родительскую папку, добавляем ID новой папки в childIds
