@@ -17,6 +17,7 @@ import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.test.blabify.R
+import com.test.blabify.data.FirebaseUtil
 import com.test.blabify.domain.models.ChatRoom
 import com.test.blabify.presentation.adapters.ChatAdapter
 
@@ -54,10 +55,13 @@ class ChatsActivity : AppCompatActivity() {
         //chatList.add(ChatItem("Название 6", "Вы: привет...", R.drawable.chat_av, "yellow"))
 
         originalChatList = chatList.toList()  // Сохраняем полный список
-        adapter = ChatAdapter(chatList) { ChatRoom ->
+        adapter = ChatAdapter(chatList) { chatRoom ->
             val intent = Intent(this, Chat::class.java)
-            // можно добавить: intent.putExtra("chatTitle", chatItem.title)
-            startActivity(intent)
+            intent.putExtra("chatroomId", chatRoom.chatId)  // <--- обязателен
+            FirebaseUtil.getCurrentUserName { userName ->
+                intent.putExtra("userName", userName)
+                startActivity(intent)
+            }
         }
         recyclerView.adapter = adapter
         loadChatRoomsFromFirebase()

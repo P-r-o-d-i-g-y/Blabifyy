@@ -51,7 +51,7 @@
                 />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.appcompat.widget.Toolbar>
-    <!-- 🔻 Второй "бар" под тулбаром -->
+    <!--Второй "бар" под тулбаром -->
     <LinearLayout
         android:id="@+id/chat_info_bar"
         android:layout_width="match_parent"
@@ -163,6 +163,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="8dp"
+        android:layout_marginBottom="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -185,7 +186,7 @@
 
             <EditText
                 android:id="@+id/message_input"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/edit_text"
                 android:paddingEnd="40dp"
@@ -199,6 +200,9 @@
                 android:padding="5dp"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
+                android:focusable="true"
+                android:clickable="true"
+                android:elevation="500dp"
                 android:scaleType="centerInside"
                 android:src="@drawable/send2"
                 android:layout_gravity="center_vertical|end"
