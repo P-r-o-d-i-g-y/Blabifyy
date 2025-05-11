@@ -8,5 +8,7 @@ data class Folder(
     val topicId: String? = null,   // если в будущем темы будут родителями
     val chatId: String? = null,    // для текущей реализации
     val createdBy: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val childIds: List<String> = listOf(),  // Список ID дочерних папок
+    var isOpened: Boolean = false  // Состояние открытия папки
 )
