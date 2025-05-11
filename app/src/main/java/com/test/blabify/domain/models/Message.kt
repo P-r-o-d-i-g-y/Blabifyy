@@ -2,6 +2,7 @@ package com.test.blabify.domain.models
 
 data class Message(
     val userName: String = "",
+    val senderId: String = "",
     val textMessage: String? = null,
     val messageTime: Long = System.currentTimeMillis(),
 
