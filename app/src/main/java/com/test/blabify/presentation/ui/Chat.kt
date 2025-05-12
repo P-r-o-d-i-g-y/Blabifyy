@@ -66,6 +66,8 @@ class Chat : AppCompatActivity() {
             startActivityForResult(Intent.createChooser(intent, "Выберите файл"), FILE_PICK_CODE)
         }
     }
+    @Suppress("DEPRECATION")
+    @Deprecated("onActivityResult is deprecated")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 

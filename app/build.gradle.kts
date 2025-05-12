@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.android.application)
     id("org.jetbrains.kotlin.kapt")
     id("com.google.gms.google-services")
-    kotlin("plugin.serialization") version "1.9.0"
+    kotlin("plugin.serialization") version "2.1.0"
 }
 
 android {
@@ -68,6 +68,7 @@ dependencies {
     //бесплатно
     // Основной SDK
     implementation(platform("io.github.jan-tennert.supabase:bom:3.1.4"))
+    implementation("io.github.jan-tennert.supabase:storage-kt")
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.ktor:ktor-client-android:3.1.3")
 
