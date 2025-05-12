@@ -26,7 +26,7 @@ import com.test.blabify.presentation.adapters.MessageAdapter
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-
+//
 class Chat : AppCompatActivity() {
     companion object {
         const val FILE_PICK_CODE = 1001
