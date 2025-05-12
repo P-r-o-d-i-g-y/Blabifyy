@@ -24,6 +24,7 @@ import com.test.blabify.domain.models.AttachmentType
 import com.test.blabify.domain.models.Message
 import com.test.blabify.presentation.adapters.MessageAdapter
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 
 class Chat : AppCompatActivity() {
@@ -70,9 +71,10 @@ class Chat : AppCompatActivity() {
     @Deprecated("onActivityResult is deprecated")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-
+        Log.d("FileUpload", "onActivityResult: FILE_PICK_CODE matched and result OK")
         if (requestCode == FILE_PICK_CODE && resultCode == RESULT_OK && data != null && data.data != null) {
             val fileUri = data.data
+            Log.d("FileUpload", "Selected fileUri: $fileUri")
             if (fileUri != null) {
                 lifecycleScope.launch {
                     val chatRoomId = intent.getStringExtra("chatroomId") ?: return@launch
@@ -80,8 +82,10 @@ class Chat : AppCompatActivity() {
                     val fileName = fileUri.lastPathSegment ?: "file"
                     val inputStream = contentResolver.openInputStream(fileUri)
                     val fileSize = inputStream?.available()?.toLong() ?: 0L
-                    val fileUrl = uploadFileToSupabase(this@Chat, fileUri, chatRoomId)
+                    Log.d("FileUpload", "InputStream available = $fileSize bytes")
 
+                    val fileUrl = uploadFileToSupabase(this@Chat, fileUri, chatRoomId)
+                    Log.d("FileUpload", "Uploaded fileUrl: $fileUrl")
                     if (fileUrl != null) {
                         val type = contentResolver.getType(fileUri) ?: ""
                         val attachmentType = when {
@@ -108,6 +112,9 @@ class Chat : AppCompatActivity() {
                             fileSize,
                             attachmentType
                         )
+                    } else {
+                        Log.e("FileUpload", "Ошибка: uploadFileToSupabase вернул null")
+                        return@launch
                     }
                 }
             }
@@ -172,6 +179,7 @@ class Chat : AppCompatActivity() {
         fileSize: Long,
         attachmentType: AttachmentType
     ) {
+        Log.d("Firestore", "Ищем папку с chatId = $chatroomId")
         val firestore = FirebaseFirestore.getInstance()
 
         firestore.collection("folders")
@@ -187,13 +195,22 @@ class Chat : AppCompatActivity() {
                         "size" to fileSize,
                         "url" to fileUrl,
                         "type" to attachmentType.toString(),
-                        "uploaded_at" to System.currentTimeMillis()
+                        "uploaded_at" to System.currentTimeMillis(),
+                        "createdBy" to FirebaseAuth.getInstance().currentUser?.uid
                     )
 
+                    val newFileId = UUID.randomUUID().toString()
                     firestore.collection("folders")
                         .document(folderId)
                         .collection("files")
-                        .add(fileMeta)
+                        .document(newFileId) // теперь явно указываешь ID
+                        .set(fileMeta)
+                        .addOnSuccessListener {
+                            Log.d("Firestore", "Метаданные файла успешно сохранены для folderId = $folderId")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("Firestore", "Ошибка сохранения метаданных файла: ${e.message}")
+                        }
                 }
             }
     }

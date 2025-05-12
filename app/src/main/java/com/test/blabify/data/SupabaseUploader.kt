@@ -2,6 +2,7 @@ package com.test.blabify.data
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
@@ -22,6 +23,7 @@ suspend fun uploadFileToSupabase(
     fileUri: Uri,
     chatRoomId: String
 ): String? = withContext(Dispatchers.IO) {
+    Log.d("SupabaseUploader", "Начали загрузку: file = ${fileUri.lastPathSegment}, chatRoomId = $chatRoomId")
     try {
         val fileName = fileUri.lastPathSegment ?: "file"
         val fileBytes = context.contentResolver.openInputStream(fileUri)?.readBytes() ?: return@withContext null
@@ -30,6 +32,7 @@ suspend fun uploadFileToSupabase(
         val path = "$uid/$chatRoomId/$fileName"
         val bucket = supabase.storage.from("chat-files")
         bucket.upload(path, fileBytes)
+        Log.d("SupabaseUploader", "Файл загружен: $path")
 
         return@withContext bucket.publicUrl(path)
     } catch (e: Exception) {
