@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.android.application)
     id("org.jetbrains.kotlin.kapt")
-
     id("com.google.gms.google-services")
+    kotlin("plugin.serialization") version "1.9.0"
 }
 
 android {
@@ -41,6 +41,7 @@ android {
 dependencies {
     implementation(libs.glide)
     annotationProcessor(libs.glide.compiler)
+    //kapt(libs.glide.compiler)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -62,5 +63,12 @@ dependencies {
     implementation("com.google.firebase:firebase-database")
 
     implementation("com.google.firebase:firebase-firestore")
-    // implementation("com.google.firebase:firebase-storage")
+    //implementation("com.google.firebase:firebase-storage") платно
+
+    //бесплатно
+    // Основной SDK
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.1.4"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.ktor:ktor-client-android:3.1.3")
+
 }
