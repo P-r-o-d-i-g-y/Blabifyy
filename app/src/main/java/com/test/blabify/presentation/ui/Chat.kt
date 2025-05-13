@@ -19,14 +19,17 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.test.blabify.R
 import com.test.blabify.data.FirebaseUtil
-import com.test.blabify.data.uploadFileToSupabase
+import com.test.blabify.data.supabase.uploadFileToSupabase
 import com.test.blabify.domain.models.AttachmentType
 import com.test.blabify.domain.models.Message
 import com.test.blabify.presentation.adapters.MessageAdapter
 import kotlinx.coroutines.launch
 import java.util.UUID
+import com.test.blabify.data.repositories.FirestoreRepositoryImpl
+import com.test.blabify.data.supabase.SupabaseTextDownloader
+import com.test.blabify.domain.usecases.FileAutoOrganizer
 
-//
+
 class Chat : AppCompatActivity() {
     companion object {
         const val FILE_PICK_CODE = 1001
@@ -206,10 +209,36 @@ class Chat : AppCompatActivity() {
                         .document(newFileId) // теперь явно указываешь ID
                         .set(fileMeta)
                         .addOnSuccessListener {
-                            Log.d("Firestore", "Метаданные файла успешно сохранены для folderId = $folderId")
+                            Log.d(
+                                "Firestore",
+                                "Метаданные файла успешно сохранены для folderId = $folderId"
+                            )
+                            // Запуск автосортировки
+                            lifecycleScope.launch {
+                                val repo = FirestoreRepositoryImpl()
+                                val organizer = FileAutoOrganizer(
+                                    getFolderNames = { repo.getChildFolderNames(folderId) },
+                                    getFiles = { repo.getFilesInFolder(folderId) },
+                                    downloadText = { url ->
+                                        SupabaseTextDownloader.downloadTextFromUrl(
+                                            url
+                                        )
+                                    },
+                                    getFolderIdByName = { name ->
+                                        repo.getChildFolderIdByName(
+                                            folderId,
+                                            name
+                                        )
+                                    },
+                                    moveFile = { fileId, childId ->
+                                        repo.updateFileFolder(fileId, folderId, childId)
+                                    }
+                                )
+                                organizer.organize()
+                            }
                         }
                         .addOnFailureListener { e ->
-                            Log.e("Firestore", "Ошибка сохранения метаданных файла: ${e.message}")
+                            Log.e("Firestore", "Ошибка при сохранении файла: ${e.message}")
                         }
                 }
             }

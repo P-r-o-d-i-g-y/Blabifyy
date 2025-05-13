@@ -1,4 +1,4 @@
-package com.test.blabify.data
+package com.test.blabify.data.supabase
 
 import android.content.Context
 import android.net.Uri
