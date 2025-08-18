@@ -12,8 +12,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 val supabase: SupabaseClient = createSupabaseClient(
-    supabaseUrl = "https://dhzpebnessobssrrheiy.supabase.co",
-    supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoenBlYm5lc3NvYnNzcnJoZWl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwNjA5ODEsImV4cCI6MjA2MjYzNjk4MX0.E6FWq-pzy_RFNEFSlL80mCBqdWatZGv21nIOjBiUSMw"
+    supabaseUrl = "https://twnktpxruhhpzmmoopaf.supabase.co",
+    supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3bmt0cHhydWhocHptbW9vcGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MDU5NjEsImV4cCI6MjA3MTA4MTk2MX0.d-E0lonG9uOBZgty_4BvtGAlHBPqcSrVvjPSRrbvFY4"
 ) {
     install(Storage)
 }
