@@ -39,7 +39,10 @@ class ChatAdapter(
     }
 
     override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
-        val chatItem = chatList[position]
+
+        //val chatItem = chatList[position]
+
+        val chatItem = filteredChatList[position]
         holder.chatTitle.text = chatItem.title
         holder.chatSubtitle.text = chatItem.subtitle
         holder.chatIcon.setImageResource(chatItem.iconResId)

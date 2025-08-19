@@ -132,10 +132,13 @@ class ChatsActivity : AppCompatActivity() {
         adapter.updateList(filteredList)  // Обновляем список в адаптере
     }
     private fun loadChatRoomsFromFirebase() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val dbRef = FirebaseDatabase.getInstance("https://blabify-a0665-default-rtdb.europe-west1.firebasedatabase.app/")
             .getReference("chatRooms")
 
-        dbRef.get().addOnSuccessListener { snapshot ->
+        val query = dbRef.orderByChild("ownerId").equalTo(uid)
+
+        query.get().addOnSuccessListener { snapshot ->
             chatList.clear()
             for (chatSnap in snapshot.children) {
                 val chatRoom = chatSnap.getValue(ChatRoom::class.java)
@@ -145,8 +148,9 @@ class ChatsActivity : AppCompatActivity() {
             }
             originalChatList = chatList.toList()
             adapter.updateList(chatList)
-        }.addOnFailureListener {
-            Toast.makeText(this, "Ошибка загрузки чатов", Toast.LENGTH_SHORT).show()
+        }.addOnFailureListener { e ->
+            Log.e("FIREBASE_DEBUG", "Ошибка загрузки чатов: ${e.message}", e)
+            Toast.makeText(this, "Ошибка загрузки чатов: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
     private fun createNewChatRoom(chatName: String) {
@@ -159,6 +163,7 @@ class ChatsActivity : AppCompatActivity() {
         val newChatRoom = ChatRoom(
             chatId = chatId,
             title = chatName,
+            ownerId = uid,
             participantIds = listOf(uid)
         )
 
