@@ -154,7 +154,17 @@ class Chat : AppCompatActivity() {
         manager.stackFromEnd = true
         recyclerView.layoutManager = manager
 
-        adapter = MessageAdapter(this, messages)
+        adapter = MessageAdapter(
+            context = this,
+            messages = messages,
+            onFileClick = { msg ->
+                // открыть/скачать файл по msg.attachmentUrl
+                // например, стартуем ACTION_VIEW с Uri.parse(msg.attachmentUrl)
+            },
+            onDetailsClick = { msg ->
+                // показать нижний шит с деталями: имя, размер, тип, время, пользователь
+            }
+        )
         recyclerView.adapter = adapter
 
         FirebaseUtil.getMessagesRef(chatroomId)
