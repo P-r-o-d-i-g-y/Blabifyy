@@ -28,6 +28,7 @@ import java.util.UUID
 import com.test.blabify.data.repositories.FirestoreRepositoryImpl
 import com.test.blabify.data.supabase.SupabaseTextDownloader
 import com.test.blabify.domain.usecases.FileAutoOrganizer
+import com.test.blabify.domain.impl.RuleBasedClassifier
 
 
 class Chat : AppCompatActivity() {
@@ -229,20 +230,10 @@ class Chat : AppCompatActivity() {
                                 val organizer = FileAutoOrganizer(
                                     getFolderNames = { repo.getChildFolderNames(folderId) },
                                     getFiles = { repo.getFilesInFolder(folderId) },
-                                    downloadText = { url ->
-                                        SupabaseTextDownloader.downloadTextFromUrl(
-                                            url
-                                        )
-                                    },
-                                    getFolderIdByName = { name ->
-                                        repo.getChildFolderIdByName(
-                                            folderId,
-                                            name
-                                        )
-                                    },
-                                    moveFile = { fileId, childId ->
-                                        repo.updateFileFolder(fileId, folderId, childId)
-                                    }
+                                    downloadText = { url -> SupabaseTextDownloader.downloadTextFromUrl(url) },
+                                    getFolderIdByName = { name -> repo.getChildFolderIdByName(folderId, name) },
+                                    moveFile = { fileId, childId -> repo.updateFileFolder(fileId, folderId, childId) },
+                                    classifier = RuleBasedClassifier() // <— ВАЖНО: добавили реализацию классификатора
                                 )
                                 organizer.organize()
                             }

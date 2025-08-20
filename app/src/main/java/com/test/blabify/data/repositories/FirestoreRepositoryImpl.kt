@@ -44,7 +44,8 @@ class FirestoreRepositoryImpl : FirestoreRepository {
         return snapshot.documents.mapNotNull {
             val id = it.id
             val url = it.getString("url")
-            if (url != null) FileAutoOrganizer.FileEntry(id, url) else null
+            val name = it.getString("name") // <-- берём имя из Firestore
+            if (url != null) FileAutoOrganizer.FileEntry(id, url, name) else null
         }
     }
 
