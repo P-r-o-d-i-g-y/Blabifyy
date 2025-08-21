@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
@@ -37,15 +38,43 @@ class TreeAdapter(
 
     /** Опционально: перезагрузить детей конкретной папки, если она раскрыта */
     fun refreshFolder(folderId: String) {
-        val pos = items.indexOfFirst { it.type == NodeType.FOLDER && it.id == folderId }
-        if (pos == -1) return
-        val node = items[pos]
-        if (!node.isExpanded) return
-        // свернуть без смены иконки
-        val removed = removeDescendants(pos)
-        if (removed > 0) notifyItemRangeRemoved(pos + 1, removed)
-        // раскрыть заново
-        expandAt(pos)
+        val firstPos = items.indexOfFirst { it.type == NodeType.FOLDER && it.id == folderId }
+        if (firstPos == -1) return
+        if (!items[firstPos].isExpanded) return
+
+        loadChildren(folderId,
+            onSuccess = { children ->
+                // список мог измениться — ищем позицию заново
+                val posNow = items.indexOfFirst { it.type == NodeType.FOLDER && it.id == folderId }
+                if (posNow == -1) return@loadChildren
+                val parent = items[posNow]
+                if (!parent.isExpanded) return@loadChildren
+
+                val newChildren = children
+                    .map { it.copy(level = parent.level + 1) }
+                    .sortedWith(
+                        compareBy<TreeItem> { it.type == NodeType.FILE }
+                            .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+                    )
+
+                // удалить текущих потомков родителя на актуальной позиции
+                val removed = removeDescendants(posNow)
+                if (removed > 0) notifyItemRangeRemoved(posNow + 1, removed)
+
+                // вставить новых
+                val insertPos = (posNow + 1).coerceIn(0, items.size)
+                if (newChildren.isNotEmpty()) {
+                    items.addAll(insertPos, newChildren)
+                    notifyItemRangeInserted(insertPos, newChildren.size)
+                }
+
+                // обновить иконку/состояние родителя
+                notifyItemChanged(posNow)
+            },
+            onError = {
+                // оставляем как есть
+            }
+        )
     }
 
     override fun getItemId(position: Int): Long {
@@ -55,7 +84,7 @@ class TreeAdapter(
     }
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-        val icon: ImageButton = view.findViewById(R.id.icon)
+        val icon: ImageView = view.findViewById(R.id.icon)
         val name: TextView = view.findViewById(R.id.name)
         val root: View = view.findViewById(R.id.root)
     }
@@ -69,9 +98,9 @@ class TreeAdapter(
         val item = items[position]
         h.name.text = item.name
 
-        // Отступ вправо по уровню
+        // Отступ вправо по уровню --------- подозрительное место
         h.root.setPadding(
-            16 * density.toInt() + item.level * indentPx,
+            (16 * density + item.level * indentPx).toInt(),
             h.root.paddingTop,
             h.root.paddingRight,
             h.root.paddingBottom
@@ -80,13 +109,20 @@ class TreeAdapter(
         when (item.type) {
             NodeType.FOLDER -> {
                 h.icon.setImageResource(if (item.isExpanded) R.drawable.folder_open2 else R.drawable.folder)
-                val click: (View) -> Unit = {
-                    if (item.isExpanded) {
-                        collapseAt(position)
-                        onFolderToggle(item.id, false)
+                //подозрительное место -------------
+                val click = View.OnClickListener {
+                    val currPos = h.adapterPosition
+                    if (currPos == RecyclerView.NO_POSITION) return@OnClickListener
+
+                    val curr = items.getOrNull(currPos) ?: return@OnClickListener
+                    if (curr.type != NodeType.FOLDER) return@OnClickListener
+
+                    if (curr.isExpanded) {
+                        collapseAt(currPos)
+                        onFolderToggle(curr.id, false)
                     } else {
-                        expandAt(position)
-                        onFolderToggle(item.id, true)
+                        expandAt(currPos) // внутри у нас коллапс соседей
+                        onFolderToggle(curr.id, true)
                     }
                 }
                 h.icon.setOnClickListener(click)
@@ -127,33 +163,80 @@ class TreeAdapter(
         return count
     }
 
+    private fun collapseSiblings(position: Int) {
+        val node = items[position]
+        val parentId = node.parentId
+        val level = node.level
+
+        // Ищем все открытые папки-соседи и закрываем
+        var i = position - 1
+        while (i >= 0 && items[i].level >= level) {
+            val it = items[i]
+            if (it.level == level && it.type == NodeType.FOLDER && it.parentId == parentId && it.isExpanded) {
+                collapseAt(i)
+            }
+            // если поднялись выше уровня — дальше назад смысла нет
+            if (it.level < level) break
+            i--
+        }
+        i = position + 1
+        while (i < items.size && items[i].level >= level) {
+            val it = items[i]
+            if (it.level == level && it.type == NodeType.FOLDER && it.parentId == parentId && it.isExpanded) {
+                collapseAt(i)
+                // после collapseAt текущий диапазон сдвинется — позиция соседей сохранится,
+                // но i не увеличиваем, чтобы не пропустить следующий элемент на новой позиции
+            } else {
+                i++
+            }
+        }
+    }
+
     private fun expandAt(position: Int) {
         if (position < 0 || position >= items.size) return
-        val node = items[position]
-        if (node.type != NodeType.FOLDER || node.isExpanded) return
+        val nodeId = items[position].id
 
+        // 1) Закрываем соседей — список может измениться
+        collapseSiblings(position)
+
+        // 2) Находим актуальную позицию текущего узла
+        var currPos = items.indexOfFirst { it.type == NodeType.FOLDER && it.id == nodeId }
+        if (currPos == -1) return
+        val node = items[currPos]
+        if (node.isExpanded) return
+
+        // 3) Помечаем как раскрытый и обновляем иконку
         node.isExpanded = true
-        notifyItemChanged(position)
+        notifyItemChanged(currPos)
 
-        // грузим детей из Firestore
+        // 4) Грузим детей
         loadChildren(node.id,
             onSuccess = { children ->
-                // выставляем уровень и сортируем: папки сперва, затем файлы, потом по имени
+                // Позиция могла снова измениться (анимации, другие операции) — ищем её ещё раз
+                val posNow = items.indexOfFirst { it.type == NodeType.FOLDER && it.id == nodeId }
+                if (posNow == -1) return@loadChildren
+                if (!items[posNow].isExpanded) return@loadChildren  // уже свернули — ничего не вставляем
+
                 val toInsert = children
-                    .map { it.copy(level = node.level + 1) }
+                    .map { it.copy(level = items[posNow].level + 1) }
                     .sortedWith(
                         compareBy<TreeItem> { it.type == NodeType.FILE }
                             .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
                     )
 
-                val insertPos = position + 1
-                items.addAll(insertPos, toInsert)
-                if (toInsert.isNotEmpty()) notifyItemRangeInserted(insertPos, toInsert.size)
+                val insertPos = posNow + 1
+                // Страховка от выхода за границы
+                val safeInsertPos = insertPos.coerceIn(0, items.size)
+                items.addAll(safeInsertPos, toInsert)
+                if (toInsert.isNotEmpty()) notifyItemRangeInserted(safeInsertPos, toInsert.size)
             },
             onError = {
-                // если не удалось загрузить — откатим флаг
-                node.isExpanded = false
-                notifyItemChanged(position)
+                // Откатываем флаг, если не удалось загрузить
+                val posNow = items.indexOfFirst { it.type == NodeType.FOLDER && it.id == nodeId }
+                if (posNow != -1) {
+                    items[posNow].isExpanded = false
+                    notifyItemChanged(posNow)
+                }
                 Toast.makeText(context, "Не удалось загрузить содержимое", Toast.LENGTH_SHORT).show()
             }
         )
@@ -164,13 +247,14 @@ class TreeAdapter(
         onSuccess: (List<TreeItem>) -> Unit,
         onError: (Throwable) -> Unit
     ) {
-        // Сначала папки
+        val folderDoc = db.collection("folders").document(folderId)
+
+        // 1) Подпапки: ищем документы /folders где parentId == folderId
         db.collection("folders")
-            .document(folderId)
-            .collection("childFolders")
+            .whereEqualTo("parentId", folderId)
             .get()
-            .addOnSuccessListener { cfSnap ->
-                val folderChildren = cfSnap.documents.map {
+            .addOnSuccessListener { subSnap ->
+                val folderChildren = subSnap.documents.map {
                     TreeItem(
                         id = it.id,
                         name = it.getString("name") ?: "(без имени)",
@@ -181,10 +265,8 @@ class TreeAdapter(
                     )
                 }
 
-                // Затем файлы
-                db.collection("folders")
-                    .document(folderId)
-                    .collection("files")
+                // 2) Файлы текущей папки
+                folderDoc.collection("files")
                     .get()
                     .addOnSuccessListener { filesSnap ->
                         val fileChildren = filesSnap.documents.map {
@@ -196,7 +278,13 @@ class TreeAdapter(
                                 type = NodeType.FILE
                             )
                         }
-                        onSuccess(folderChildren + fileChildren)
+
+                        onSuccess(
+                            (folderChildren + fileChildren).sortedWith(
+                                compareBy<TreeItem> { it.type == NodeType.FILE }
+                                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+                            )
+                        )
                     }
                     .addOnFailureListener(onError)
             }
