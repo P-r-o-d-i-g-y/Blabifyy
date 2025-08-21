@@ -5,7 +5,6 @@ import android.util.Log
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.test.blabify.domain.repositories.FirestoreRepository
-import com.google.firebase.firestore.FieldPath
 import com.test.blabify.domain.usecases.FileAutoOrganizer
 import kotlinx.coroutines.tasks.await
 
@@ -13,73 +12,68 @@ class FirestoreRepositoryImpl : FirestoreRepository {
 
     private val db = Firebase.firestore
 
+    /** Имена дочерних папок: /folders where parentId == parentFolderId */
     override suspend fun getChildFolderNames(parentFolderId: String): List<String> {
-        val snapshot = db.collection("folders")
-            .document(parentFolderId)
-            .collection("childFolders")
+        val snap = db.collection("folders")
+            .whereEqualTo("parentId", parentFolderId)
             .get()
             .await()
 
-        return snapshot.documents.mapNotNull { it.getString("name") }
+        return snap.documents.mapNotNull { it.getString("name") }
     }
 
+    /** Id дочерней папки по имени: /folders where parentId == ... and name == ...  */
     override suspend fun getChildFolderIdByName(parentFolderId: String, folderName: String): String? {
-        val snapshot = db.collection("folders")
-            .document(parentFolderId)
-            .collection("childFolders")
+        val snap = db.collection("folders")
+            .whereEqualTo("parentId", parentFolderId)
             .whereEqualTo("name", folderName)
+            .limit(1)
             .get()
             .await()
 
-        return snapshot.documents.firstOrNull()?.id
+        return snap.documents.firstOrNull()?.id
     }
 
+    /** Файлы папки: /folders/{parentFolderId}/files */
     override suspend fun getFilesInFolder(parentFolderId: String): List<FileAutoOrganizer.FileEntry> {
-        val snapshot = db.collection("folders")
+        val snap = db.collection("folders")
             .document(parentFolderId)
             .collection("files")
             .get()
             .await()
 
-        return snapshot.documents.mapNotNull {
+        return snap.documents.mapNotNull {
             val id = it.id
             val url = it.getString("url")
-            val name = it.getString("name") // <-- берём имя из Firestore
+            val name = it.getString("name")
             if (url != null) FileAutoOrganizer.FileEntry(id, url, name) else null
         }
     }
 
+    /**
+     * Перемещение файла: из /folders/{parentId}/files/{fileId}
+     *                     в /folders/{childId}/files/{fileId}
+     */
     override suspend fun updateFileFolder(fileId: String, parentId: String, childId: String) {
-        Log.d("FirestoreRepository", "Searching for fileId=$fileId in collectionGroup")
+        val parentFiles = db.collection("folders").document(parentId).collection("files")
+        val childFiles  = db.collection("folders").document(childId).collection("files")
 
-        val fileSnapshot = db.collection("folders")
-            .document(parentId)
-            .collection("files")
-            .document(fileId)
-            .get()
-            .await()
+        Log.d("FirestoreRepository", "Move file=$fileId from $parentId -> $childId")
 
-        if (!fileSnapshot.exists()) {
-            Log.e("FirestoreRepository", "File $fileId not found in folders/$parentId/files")
-            return
-        }
+        // Транзакция: читаем — пишем — удаляем
+        db.runTransaction { tx ->
+            val oldRef  = parentFiles.document(fileId)
+            val oldSnap = tx.get(oldRef)
+            if (!oldSnap.exists()) {
+                Log.e("FirestoreRepository", "File $fileId not found at folders/$parentId/files")
+                return@runTransaction null
+            }
+            val data = oldSnap.data ?: return@runTransaction null
+            val newRef = childFiles.document(fileId)
 
-        val data = fileSnapshot?.data ?: return
-        Log.d("FirestoreRepository", "Deleting file $fileId from old location")
-        fileSnapshot.reference.delete().await()
-
-        Log.d("FirestoreRepository", "Creating file $fileId in child folder $childId")
-
-        Log.d("FirestoreRepository", "Set path: folders/$parentId/childFolders/$childId/files/$fileId")
-
-
-        db.collection("folders")
-            .document(parentId)
-            .collection("childFolders")
-            .document(childId)
-            .collection("files")
-            .document(fileId)
-            .set(data)
-            .await()
+            tx.set(newRef, data)
+            tx.delete(oldRef)
+            null
+        }.await()
     }
 }
