@@ -23,7 +23,7 @@ suspend fun uploadFileToSupabase(
     fileUri: Uri,
     chatRoomId: String
 ): String? = withContext(Dispatchers.IO) {
-    Log.d("SupabaseUploader", "Начали загрузку: file = ${fileUri.lastPathSegment}, chatRoomId = $chatRoomId")
+    Log.d("SupabaseUploader", "Started loading: file = ${fileUri.lastPathSegment}, chatRoomId = $chatRoomId")
     try {
         val fileName = fileUri.lastPathSegment ?: "file"
         val fileBytes = context.contentResolver.openInputStream(fileUri)?.readBytes() ?: return@withContext null
@@ -32,7 +32,7 @@ suspend fun uploadFileToSupabase(
         val path = "$uid/$chatRoomId/$fileName"
         val bucket = supabase.storage.from("chat-files")
         bucket.upload(path, fileBytes)
-        Log.d("SupabaseUploader", "Файл загружен: $path")
+        Log.d("SupabaseUploader", "File uploaded: $path")
 
         return@withContext bucket.publicUrl(path)
     } catch (e: Exception) {

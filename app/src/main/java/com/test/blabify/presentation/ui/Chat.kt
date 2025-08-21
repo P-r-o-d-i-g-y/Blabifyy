@@ -59,7 +59,7 @@ class Chat : AppCompatActivity() {
         setupChatRecyclerView(chatroomId)
         val userName = intent.getStringExtra("userName") ?: "Аноним"
         sendMessageBtn.setOnClickListener { v ->
-            Log.d("Chat", "Нажали на кнопку отправки")
+            Log.d("Chat", "Clicked the send button")
             val message: String = messageInput.getText().toString().trim()
             if (message.isEmpty()) return@setOnClickListener
             sendMessageToUser(chatroomId, userName, message)
@@ -117,7 +117,7 @@ class Chat : AppCompatActivity() {
                             attachmentType
                         )
                     } else {
-                        Log.e("FileUpload", "Ошибка: uploadFileToSupabase вернул null")
+                        Log.e("FileUpload", "Error: uploadFileToSupabase returned null")
                         return@launch
                     }
                 }
@@ -141,11 +141,11 @@ class Chat : AppCompatActivity() {
             .push()
             .setValue(message)
             .addOnSuccessListener {
-                Log.d("sendMessageToUser", "Сообщение успешно отправлено")
+                Log.d("sendMessageToUser", "Message sent successfully")
                 messageInput.setText("")
             }
             .addOnFailureListener { error ->
-                Log.e("sendMessageToUser", "Ошибка при отправке сообщения: ${error.message}")
+                Log.e("sendMessageToUser", "Error sending message: ${error.message}")
             }
     }
     private fun setupChatRecyclerView(chatroomId: String) {
@@ -181,7 +181,7 @@ class Chat : AppCompatActivity() {
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    Log.e("Chat", "Ошибка чтения сообщений: ${error.message}")
+                    Log.e("Chat", "Error reading messages: ${error.message}")
                 }
             }
         )
@@ -193,7 +193,7 @@ class Chat : AppCompatActivity() {
         fileSize: Long,
         attachmentType: AttachmentType
     ) {
-        Log.d("Firestore", "Ищем папку с chatId = $chatroomId")
+        Log.d("Firestore", "We are looking for a folder with chatId = $chatroomId")
         val firestore = FirebaseFirestore.getInstance()
 
         firestore.collection("folders")
@@ -222,7 +222,7 @@ class Chat : AppCompatActivity() {
                         .addOnSuccessListener {
                             Log.d(
                                 "Firestore",
-                                "Метаданные файла успешно сохранены для folderId = $folderId"
+                                "File metadata saved successfully for folderId = $folderId"
                             )
                             // Запуск автосортировки
                             lifecycleScope.launch {
@@ -239,7 +239,7 @@ class Chat : AppCompatActivity() {
                             }
                         }
                         .addOnFailureListener { e ->
-                            Log.e("Firestore", "Ошибка при сохранении файла: ${e.message}")
+                            Log.e("Firestore", "Error saving file: ${e.message}")
                         }
                 }
             }

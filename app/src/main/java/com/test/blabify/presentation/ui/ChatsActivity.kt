@@ -149,7 +149,7 @@ class ChatsActivity : AppCompatActivity() {
             originalChatList = chatList.toList()
             adapter.updateList(chatList)
         }.addOnFailureListener { e ->
-            Log.e("FIREBASE_DEBUG", "Ошибка загрузки чатов: ${e.message}", e)
+            Log.e("FIREBASE_DEBUG", "Error loading chats: ${e.message}", e)
             Toast.makeText(this, "Ошибка загрузки чатов: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
