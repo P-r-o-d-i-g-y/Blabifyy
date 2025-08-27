@@ -72,4 +72,7 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.ktor:ktor-client-android:3.1.3")
 
+    //изображения: EXIF
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
 }

@@ -4,6 +4,7 @@ package com.test.blabify.data.repositories
 import android.util.Log
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.test.blabify.domain.models.Folder
 import com.test.blabify.domain.repositories.FirestoreRepository
 import com.test.blabify.domain.usecases.FileAutoOrganizer
 import kotlinx.coroutines.tasks.await
@@ -44,9 +45,18 @@ class FirestoreRepositoryImpl : FirestoreRepository {
 
         return snap.documents.mapNotNull {
             val id = it.id
-            val url = it.getString("url")
+            val url = it.getString("url") ?: return@mapNotNull null
             val name = it.getString("name")
-            if (url != null) FileAutoOrganizer.FileEntry(id, url, name) else null
+            val pinned = it.getBoolean("pinned")
+            val movedAt = it.getLong("movedAt")
+
+            FileAutoOrganizer.FileEntry(
+                id = id,
+                url = url,
+                name = name,
+                pinned = pinned,
+                movedAt = movedAt
+            )
         }
     }
 
@@ -75,5 +85,59 @@ class FirestoreRepositoryImpl : FirestoreRepository {
             tx.delete(oldRef)
             null
         }.await()
+    }
+    // --- НОВОЕ: дети по parentId ---
+    override suspend fun getChildrenFolders(parentId: String?): List<Folder> {
+        val q = if (parentId == null)
+            db.collection("folders").whereEqualTo("parentId", null)
+        else
+            db.collection("folders").whereEqualTo("parentId", parentId)
+
+        val snap = q.get().await()
+        return snap.documents.map { doc ->
+            Folder(
+                id = doc.id,
+                name = doc.getString("name") ?: "(без имени)",
+                parentId = doc.getString("parentId"),
+                topicId = doc.getString("topicId"),
+                chatId = doc.getString("chatId"),
+                createdBy = doc.getString("createdBy") ?: "",
+                createdAt = (doc.getLong("createdAt") ?: System.currentTimeMillis()),
+                childIds = emptyList(),      // больше НЕ используем childIds — оставим пустым
+                isOpened = false
+            )
+        }
+    }
+
+    // --- НОВОЕ: все потомки (BFS) ---
+    override suspend fun getDescendantFolders(rootId: String): List<Folder> {
+        val out = mutableListOf<Folder>()
+        val queue = ArrayDeque<String>()
+        queue.add(rootId)
+
+        while (queue.isNotEmpty()) {
+            val pid = queue.removeFirst()
+            val snap = db.collection("folders")
+                .whereEqualTo("parentId", pid)
+                .get()
+                .await()
+
+            val children = snap.documents.map { doc ->
+                Folder(
+                    id = doc.id,
+                    name = doc.getString("name") ?: "(без имени)",
+                    parentId = doc.getString("parentId"),
+                    topicId = doc.getString("topicId"),
+                    chatId = doc.getString("chatId"),
+                    createdBy = doc.getString("createdBy") ?: "",
+                    createdAt = (doc.getLong("createdAt") ?: System.currentTimeMillis()),
+                    childIds = emptyList(),
+                    isOpened = false
+                )
+            }
+            out += children
+            children.forEach { queue.addLast(it.id) }
+        }
+        return out
     }
 }

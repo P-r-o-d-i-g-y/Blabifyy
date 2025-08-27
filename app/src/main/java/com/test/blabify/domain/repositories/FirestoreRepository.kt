@@ -3,10 +3,15 @@ package com.test.blabify.domain.repositories
 //Интерфейс нужен, чтобы domain (usecase-слой) не зависел от конкретных реализаций Firebase/Supabase. Это чистая архитектура.
 
 import com.test.blabify.domain.usecases.FileAutoOrganizer
+import com.test.blabify.domain.models.Folder
 
 interface FirestoreRepository {
     suspend fun getChildFolderNames(parentFolderId: String): List<String>
     suspend fun getChildFolderIdByName(parentFolderId: String, folderName: String): String?
     suspend fun getFilesInFolder(parentFolderId: String): List<FileAutoOrganizer.FileEntry>
     suspend fun updateFileFolder(fileId: String, parentId: String, childId: String)
+
+    // НОВОЕ:
+    suspend fun getChildrenFolders(parentId: String?): List<Folder>
+    suspend fun getDescendantFolders(rootId: String): List<Folder>
 }

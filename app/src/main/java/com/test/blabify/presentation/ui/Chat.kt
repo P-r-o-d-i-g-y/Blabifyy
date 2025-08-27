@@ -114,7 +114,8 @@ class Chat : AppCompatActivity() {
                             fileName,
                             fileUrl,
                             fileSize,
-                            attachmentType
+                            attachmentType,
+                            fileUri
                         )
                     } else {
                         Log.e("FileUpload", "Error: uploadFileToSupabase returned null")
@@ -191,7 +192,8 @@ class Chat : AppCompatActivity() {
         fileName: String,
         fileUrl: String,
         fileSize: Long,
-        attachmentType: AttachmentType
+        attachmentType: AttachmentType,
+        fileUri: android.net.Uri
     ) {
         Log.d("Firestore", "We are looking for a folder with chatId = $chatroomId")
         val firestore = FirebaseFirestore.getInstance()
@@ -204,21 +206,37 @@ class Chat : AppCompatActivity() {
                     val folder = result.documents[0]
                     val folderId = folder.id
 
-                    val fileMeta = mapOf(
-                        "name" to fileName,
-                        "size" to fileSize,
-                        "url" to fileUrl,
-                        "type" to attachmentType.toString(),
-                        "uploaded_at" to System.currentTimeMillis(),
-                        "createdBy" to FirebaseAuth.getInstance().currentUser?.uid
+                    // 🔽 генерируем id сразу
+                    val newFileId = UUID.randomUUID().toString()
+
+                    // 🔽 ДОБАВЬ ЭТО (перед созданием модели)
+                    val exif: Map<String, Any?> = if (attachmentType == AttachmentType.IMAGE) {
+                        extractImageMeta(fileUri) // <<— тебе доступен fileUri из onActivityResult
+                    } else emptyMap()
+
+                    // 🔽 создаём объект FileMeta (а не Map)
+                    val fileMetaObj = com.test.blabify.domain.models.FileMeta(
+                        id = newFileId,
+                        name = fileName,
+                        size = fileSize,
+                        url = fileUrl,
+                        type = attachmentType.toString(),
+                        uploadedAt = System.currentTimeMillis(),
+                        createdBy = FirebaseAuth.getInstance().currentUser?.uid,
+                        pinned = false,
+                        confidence = null,
+                        movedAt = null,
+                        exifDate = exif["exifDate"] as String?,
+                        exifCamera = exif["exifCamera"] as String?,
+                        exifLat = (exif["exifLat"] as? Double),
+                        exifLng = (exif["exifLng"] as? Double)
                     )
 
-                    val newFileId = UUID.randomUUID().toString()
                     firestore.collection("folders")
                         .document(folderId)
                         .collection("files")
                         .document(newFileId) // теперь явно указываешь ID
-                        .set(fileMeta)
+                        .set(fileMetaObj) // <-- вот тут кладём модель
                         .addOnSuccessListener {
                             Log.d(
                                 "Firestore",
@@ -227,13 +245,18 @@ class Chat : AppCompatActivity() {
                             // Запуск автосортировки
                             lifecycleScope.launch {
                                 val repo = FirestoreRepositoryImpl()
+                                // НОВОЕ: соберём ВСЕ подпапки (любая глубина) корневой папки чата:
+                                val descendants = repo.getDescendantFolders(folderId)
+                                val names = descendants.map { it.name }
+                                val nameToId = descendants.associateBy({ it.name }, { it.id })
+
                                 val organizer = FileAutoOrganizer(
-                                    getFolderNames = { repo.getChildFolderNames(folderId) },
-                                    getFiles = { repo.getFilesInFolder(folderId) },
-                                    downloadText = { url -> SupabaseTextDownloader.downloadTextFromUrl(url) },
-                                    getFolderIdByName = { name -> repo.getChildFolderIdByName(folderId, name) },
+                                    getFolderNames = { names }, // вместо прямых детей — все потомки
+                                    getFiles = { repo.getFilesInFolder(folderId) }, // файлы текущей (корневой) папки
+                                    downloadText = { url -> com.test.blabify.data.supabase.SupabaseTextDownloader.downloadTextFromUrl(url) },
+                                    getFolderIdByName = { name -> nameToId[name] }, // в памяти, без доп. сетевых запросов
                                     moveFile = { fileId, childId -> repo.updateFileFolder(fileId, folderId, childId) },
-                                    classifier = RuleBasedClassifier() // <— ВАЖНО: добавили реализацию классификатора
+                                    classifier = com.test.blabify.domain.impl.RuleBasedClassifier()
                                 )
                                 organizer.organize()
                             }
@@ -243,5 +266,27 @@ class Chat : AppCompatActivity() {
                         }
                 }
             }
+    }
+    private fun extractImageMeta(uri: android.net.Uri): Map<String, Any?> {
+        return try {
+            val input = contentResolver.openInputStream(uri) ?: return emptyMap()
+            val exif = androidx.exifinterface.media.ExifInterface(input)
+
+            val date = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL)
+                ?: exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME)
+            val latLong = FloatArray(2)
+            val hasLatLng = exif.getLatLong(latLong)
+            val make = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MAKE)
+            val model = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MODEL)
+
+            mapOf(
+                "exifDate" to date,
+                "exifCamera" to listOfNotNull(make, model).joinToString(" ").ifBlank { null },
+                "exifLat" to if (hasLatLng) latLong[0].toDouble() else null,
+                "exifLng" to if (hasLatLng) latLong[1].toDouble() else null
+            )
+        } catch (_: Exception) {
+            emptyMap()
+        }
     }
 }

@@ -19,7 +19,7 @@ class RuleBasedClassifier : FileClassifier {
 
         val best = matches.maxByOrNull { it.value }
         return if (best != null && best.value > 0)
-            ClassificationResult(best.key, confidence = 0.6f)
+            ClassificationResult(best.key, confidence = 0.8f)
         else
             ClassificationResult(null, confidence = 0f)
     }
