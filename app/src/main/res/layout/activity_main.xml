@@ -152,7 +152,7 @@
             android:elevation="10dp"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:src="@drawable/load2"
+            android:src="@drawable/add_smthg"
             android:scaleType="fitCenter"
             android:background="@android:color/transparent"
             android:layout_marginTop="550dp"

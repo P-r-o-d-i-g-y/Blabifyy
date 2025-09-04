@@ -14,6 +14,14 @@ data class FileMeta(
     val confidence: Float? = null,
     val movedAt: Long? = null,
 
+
+    // НОВОЕ: липкость к ветке
+    val classificationBranch: String? = null,   // имя первой папки в path (ветка), например "puppy"
+    val classificationFolderId: String? = null, // последний выбранный лист
+    val classificationScore: Double? = null,    // последний score
+
+
+
     // опционально для изображений (можно добавить позже)
     val exifDate: String? = null,
     val exifCamera: String? = null,

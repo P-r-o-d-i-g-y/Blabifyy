@@ -9,8 +9,14 @@ interface FirestoreRepository {
     suspend fun getChildFolderNames(parentFolderId: String): List<String>
     suspend fun getChildFolderIdByName(parentFolderId: String, folderName: String): String?
     suspend fun getFilesInFolder(parentFolderId: String): List<FileAutoOrganizer.FileEntry>
-    suspend fun updateFileFolder(fileId: String, parentId: String, childId: String)
-
+    // НОВАЯ сигнатура: передаём ветку и счёт
+    suspend fun updateFileFolder(
+        fileId: String,
+        parentId: String,
+        childId: String,
+        classificationBranch: String?,
+        classificationScore: Double?
+    )
     // НОВОЕ:
     suspend fun getChildrenFolders(parentId: String?): List<Folder>
     suspend fun getDescendantFolders(rootId: String): List<Folder>

@@ -1,32 +1,46 @@
 package com.test.blabify.domain.usecases
 
 import android.util.Log
-import com.test.blabify.domain.api.FileClassifier   // <-- добавили импорт
+import com.test.blabify.domain.api.FileClassifier
+import com.test.blabify.domain.api.CandidateFolder
 import com.test.blabify.domain.api.ClassificationResult
 
 /*Цель
 Автосортировка загруженных файлов по вложенным папкам одного чата так, чтобы они попадали в подходящую
 подпапку и при этом не «скакали» (есть защита от лишних перемещений).*/
+/**
+ * Организатор: получает список кандидатов (id, name, level, path),
+ * классифицирует и перемещает файл в папку по ID.
+ * Есть "липкость к ветке": если файл уже привязан к ветке, рассматриваем
+ * только кандидатов ВНУТРИ этой ветки.
+ */
 
 
-
-//Организатор — координирует процесс
 class FileAutoOrganizer(
-    private val getFolderNames: suspend () -> List<String>,
+    private val getFolders: suspend () -> List<CandidateFolder>,
     private val getFiles: suspend () -> List<FileEntry>,
     private val downloadText: suspend (String) -> String,
-    private val getFolderIdByName: suspend (String) -> String?,
-    private val moveFile: suspend (fileId: String, folderId: String) -> Unit,
-    private val classifier: FileClassifier              // <-- НОВОЕ поле
+    private val moveFile: suspend (
+        fileId: String,
+        targetFolderId: String,
+        classificationBranch: String?,
+        classificationScore: Double?
+    ) -> Unit,
+    private val classifier: FileClassifier
 ) {
-    private val CONF_THRESHOLD = 0.7f
+    private val CONF_THRESHOLD = 0.5f
     private val MOVE_COOLDOWN_MS = 7L * 24 * 60 * 60 * 1000 // 7 дней
 
     suspend fun organize() {
         Log.d("Organizer", "Starting file organization")
-        val folders = getFolderNames()
+        val folders = getFolders()
         val files = getFiles()
-        Log.d("Organizer", "Files to organize: ${files.size}")
+        Log.d("Organizer", "Files=${files.size}, candidates=${folders.size}")
+
+        // быстрые хелперы
+        val byId = folders.associateBy { it.id }
+        fun branchNameOf(c: CandidateFolder?): String? =
+            c?.path?.split('/')?.firstOrNull()
 
         for (file in files) {
             Log.d("Organizer", "Classifying file ${file.id}")
@@ -36,28 +50,38 @@ class FileAutoOrganizer(
             // кулдаун
             if (file.movedAt != null && System.currentTimeMillis() - file.movedAt < MOVE_COOLDOWN_MS) continue
 
+            // кандидаты: если есть привязка к ветке — фильтруем
+            val candidates =
+                if (!file.classificationBranch.isNullOrBlank())
+                    folders.filter { cand -> branchNameOf(cand) == file.classificationBranch }
+                else
+                    folders
 
-
+            if (candidates.isEmpty()) continue
 
             val text = runCatching { downloadText(file.url) }.getOrNull().orEmpty()
             val res: ClassificationResult = classifier.classify(
                 fileName = file.name ?: "",
                 fileText = text,
-                candidateFolders = folders
+                candidates = candidates
             )
 
-            val folderName = res.targetFolderName
-            Log.d("Organizer", "Text classified as: $folderName")
+            val target = byId[res.targetFolderId]
+            if (target == null) {
+                Log.d("Organizer", "Skip ${file.id}: target is null")
+                continue
+            }
 
-            if (!folderName.isNullOrBlank()&& res.confidence >= CONF_THRESHOLD) {
-                Log.d("Organizer", "Looking for folderId for name: $folderName")
-                val folderId = getFolderIdByName(folderName)
-                Log.d("Organizer", "Found folderId=$folderId for name $folderName")
-                if (folderId != null) {
-                    Log.d("Organizer", "File ${file.id} moved to $folderId")
-                    moveFile(file.id, folderId)
-                    Log.d("Organizer", "File ${file.id} analyzed. Assigned to folder: $folderName")
-                }
+            if (res.confidence >= CONF_THRESHOLD) {
+                val targetBranch = branchNameOf(target)
+                Log.d(
+                    "Organizer",
+                    "Move ${file.id} -> ${target.id} (${target.path}), conf=${res.confidence}, score=${res.score}"
+                )
+                // ВАЖНО: вызываем moveFile с 4 аргументами
+                moveFile(file.id, target.id, targetBranch, res.score)
+            } else {
+                Log.d("Organizer", "Skip ${file.id}: low confidence (${res.confidence})")
             }
         }
     }
@@ -67,6 +91,11 @@ class FileAutoOrganizer(
         val url: String,
         val name: String? = null,
         val pinned: Boolean? = null,
-        val movedAt: Long? = null
+        val movedAt: Long? = null,
+
+        // НОВОЕ: для политики перемещений
+        val classificationBranch: String? = null,   // имя первой папки (ветка), напр. "puppy"
+        val classificationFolderId: String? = null, // куда в последний раз положили
+        val classificationScore: Double? = null     // последний score
     )
 }

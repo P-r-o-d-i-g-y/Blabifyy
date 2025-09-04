@@ -49,13 +49,19 @@ class FirestoreRepositoryImpl : FirestoreRepository {
             val name = it.getString("name")
             val pinned = it.getBoolean("pinned")
             val movedAt = it.getLong("movedAt")
+            val classificationBranch = it.getString("classificationBranch")
+            val classificationFolderId = it.getString("classificationFolderId")
+            val classificationScore = it.getDouble("classificationScore")
 
             FileAutoOrganizer.FileEntry(
                 id = id,
                 url = url,
                 name = name,
                 pinned = pinned,
-                movedAt = movedAt
+                movedAt = movedAt,
+                classificationBranch = classificationBranch,
+                classificationFolderId = classificationFolderId,
+                classificationScore = classificationScore
             )
         }
     }
@@ -64,13 +70,18 @@ class FirestoreRepositoryImpl : FirestoreRepository {
      * Перемещение файла: из /folders/{parentId}/files/{fileId}
      *                     в /folders/{childId}/files/{fileId}
      */
-    override suspend fun updateFileFolder(fileId: String, parentId: String, childId: String) {
+    override suspend fun updateFileFolder(
+        fileId: String,
+        parentId: String,
+        childId: String,
+        classificationBranch: String?,
+        classificationScore: Double?
+    ) {
         val parentFiles = db.collection("folders").document(parentId).collection("files")
         val childFiles  = db.collection("folders").document(childId).collection("files")
 
         Log.d("FirestoreRepository", "Move file=$fileId from $parentId -> $childId")
 
-        // Транзакция: читаем — пишем — удаляем
         db.runTransaction { tx ->
             val oldRef  = parentFiles.document(fileId)
             val oldSnap = tx.get(oldRef)
@@ -78,9 +89,19 @@ class FirestoreRepositoryImpl : FirestoreRepository {
                 Log.e("FirestoreRepository", "File $fileId not found at folders/$parentId/files")
                 return@runTransaction null
             }
-            val data = oldSnap.data ?: return@runTransaction null
-            val newRef = childFiles.document(fileId)
 
+            // берём существующие поля и делаем их изменяемыми
+            val data = (oldSnap.data ?: return@runTransaction null).toMutableMap()
+
+            // ⬇⬇⬇ ВАЖНО: обновляем метаданные политики перемещения
+            val now = System.currentTimeMillis()
+            data["movedAt"] = now
+            data["classificationFolderId"] = childId
+            if (classificationBranch != null) data["classificationBranch"] = classificationBranch
+            if (classificationScore != null)  data["classificationScore"]  = classificationScore
+            // ⬆⬆⬆
+
+            val newRef = childFiles.document(fileId)
             tx.set(newRef, data)
             tx.delete(oldRef)
             null
