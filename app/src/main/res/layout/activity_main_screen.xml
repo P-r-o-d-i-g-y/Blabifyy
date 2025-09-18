@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="#698579"
     tools:context=".presentation.ui.MainScreen">
+<!--  ЭТО НЕ ВКЛЮЧЕНО НИКУДА, ОНО ПОКА И НЕ НУЖНО ВООБЩЕ  -->
 
     <!-- Основное содержимое -->
     <androidx.constraintlayout.widget.ConstraintLayout

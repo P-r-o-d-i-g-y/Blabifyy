@@ -14,7 +14,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.LinearLayoutManager
-import android.widget.PopupMenu
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -26,6 +25,11 @@ import java.util.UUID
 import androidx.appcompat.app.AlertDialog
 import com.google.firebase.firestore.FirebaseFirestore
 import com.test.blabify.domain.models.Folder
+//для кастомного меню выездного
+import com.test.blabify.presentation.ui.widgets.ColorPopup
+import com.test.blabify.presentation.adapters.ColorMenuItem
+
+
 
 class ChatsActivity : AppCompatActivity() {
     private var selectedColor: String = "all"
@@ -90,23 +94,36 @@ class ChatsActivity : AppCompatActivity() {
 
     }
 
-    private fun showColorPopup(view: View) {
-        val popup = PopupMenu(this, view)
-        popup.menuInflater.inflate(R.menu.color_select_menu, popup.menu)
+    private fun showColorPopup(anchor: View) {
+        val items = listOf(
+            ColorMenuItem(R.id.mark_black,  "Black",  R.drawable.mark_black,  section = 0),
+            ColorMenuItem(R.id.mark_blue,   "Blue",   R.drawable.mark_blue,   section = 0),
+            ColorMenuItem(R.id.mark_yellow, "Yellow", R.drawable.mark_yellow, section = 0),
 
-        popup.setOnMenuItemClickListener { item ->
-            selectedColor = when (item.itemId) {
-                R.id.mark_black -> "black"
-                R.id.mark_blue -> "blue"
-                R.id.mark_yellow -> "yellow"
-                R.id.reset_filter -> "all"  // Сбросить фильтрацию
-                else -> "all"
+            // секция действий
+            ColorMenuItem(R.id.reset_filter, "Reset", null, section = 1)
+        )
+
+        val popup = ColorPopup(
+            context = this,
+            items = items,
+            onItemClick = { item ->
+                selectedColor = when (item.id) {
+                    R.id.mark_black -> "black"
+                    R.id.mark_blue -> "blue"
+                    R.id.mark_yellow -> "yellow"
+                    R.id.reset_filter -> "all"
+                    else -> "all"
+                }
+                updateMarkIcon(selectedColor)
+                filterChats()
+            },
+            isSectionBreak = { pos ->
+                // рисуем белую «пилюлю» ПЕРЕД первым элементом новой секции
+                pos in 1..items.lastIndex && (items[pos - 1].section != items[pos].section)
             }
-            updateMarkIcon(selectedColor)
-            filterChats()
-            true
-        }
-        popup.show()
+        )
+        popup.show(anchor)
     }
     // Функция для изменения иконки "Закладки" в Toolbar
     private fun updateMarkIcon(color: String) {

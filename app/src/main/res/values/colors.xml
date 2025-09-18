@@ -2,4 +2,7 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="popup_teal">#C6E8DF</color>
+    <color name="popup_text">#111111</color>
+    <color name="popup_divider">#FFFFFFFF</color>
 </resources>
