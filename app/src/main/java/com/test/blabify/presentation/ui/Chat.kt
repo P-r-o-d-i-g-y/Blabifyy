@@ -3,6 +3,7 @@ package com.test.blabify.presentation.ui
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
 import androidx.activity.enableEdgeToEdge
@@ -26,9 +27,8 @@ import com.test.blabify.presentation.adapters.MessageAdapter
 import kotlinx.coroutines.launch
 import java.util.UUID
 import com.test.blabify.data.repositories.FirestoreRepositoryImpl
-import com.test.blabify.data.supabase.SupabaseTextDownloader
-import com.test.blabify.domain.usecases.FileAutoOrganizer
-import com.test.blabify.domain.impl.RuleBasedClassifier
+import com.test.blabify.presentation.ui.widgets.ColorPopup
+import com.test.blabify.presentation.adapters.ColorMenuItem
 
 
 class Chat : AppCompatActivity() {
@@ -70,6 +70,9 @@ class Chat : AppCompatActivity() {
             intent.type = "*/*"
             startActivityForResult(Intent.createChooser(intent, "Выберите файл"), FILE_PICK_CODE)
         }
+        val btnSettings = findViewById<ImageButton>(R.id.btn_settings)
+        btnSettings.setOnClickListener { v -> showSettingsPopup(v) }
+
     }
     @Suppress("DEPRECATION")
     @Deprecated("onActivityResult is deprecated")
@@ -323,4 +326,28 @@ class Chat : AppCompatActivity() {
             emptyMap()
         }
     }
+    private fun showSettingsPopup(anchor: View) {
+        val items = listOf(
+            ColorMenuItem(R.id.action_resort_branch, "Пересортировка ветки"),
+            ColorMenuItem(R.id.action_mark_color,   "Цвет закладки")
+        )
+
+        ColorPopup(
+            context = this,
+            items = items,
+            onItemClick = { item ->
+                when (item.id) {
+                    R.id.action_resort_branch -> {
+                        android.widget.Toast.makeText(this, "Пересортировка ветки", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    R.id.action_mark_color -> {
+                        android.widget.Toast.makeText(this, "Цвет закладки", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            // белая "пилюля" между двумя пунктами
+            isSectionBreak = { pos -> pos == 1 }
+        ).show(anchor)
+    }
+
 }
