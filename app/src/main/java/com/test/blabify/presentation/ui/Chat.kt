@@ -29,6 +29,8 @@ import java.util.UUID
 import com.test.blabify.data.repositories.FirestoreRepositoryImpl
 import com.test.blabify.presentation.ui.widgets.ColorPopup
 import com.test.blabify.presentation.adapters.ColorMenuItem
+import kotlinx.coroutines.tasks.await
+
 
 
 class Chat : AppCompatActivity() {
@@ -74,6 +76,36 @@ class Chat : AppCompatActivity() {
         btnSettings.setOnClickListener { v -> showSettingsPopup(v) }
 
     }
+    /**
+     * Возвращает ID корневой папки (root) для текущего чата.
+     *
+     * Зачем: при клике "Пересортировка ветки" нам нужно знать, в какой корневой папке (ветке=чате)
+     * считать кандидатов/файлы. У каждой записи-папки в Firestore у корня `parentId == null`
+     * и `chatId == <id чата>`. Мы находим ровно один такой документ и берём его id.
+     *
+     * suspend: Firestore-запрос асинхронный. Функцию вызываем из корутины (lifecycleScope.launch { ... }).
+     *
+     * @param chatId  ID чата (мы его кладём в Intent при открытии Chat)
+     * @return id корневой папки или null, если ничего не нашли
+     */
+    private suspend fun getRootFolderIdForChat(chatId: String): String? {
+        // Берём инстанс Firestore
+        val fs = FirebaseFirestore.getInstance()
+        // Делаем запрос в коллекцию "folders":
+        // — chatId совпадает с нужным чатом
+        // — parentId == null, значит это именно корневая папка чата
+        // — limit(1), потому что ожидаем максимум одну запись
+        val snap = fs.collection("folders")
+            .whereEqualTo("chatId", chatId)
+            .whereEqualTo("parentId", null)
+            .limit(1)
+            .get()
+            .await() // ждём результат внутри корутины
+        // Если документ найден — вернём его id, иначе null
+        return snap.documents.firstOrNull()?.id
+    }
+
+
     @Suppress("DEPRECATION")
     @Deprecated("onActivityResult is deprecated")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -338,7 +370,35 @@ class Chat : AppCompatActivity() {
             onItemClick = { item ->
                 when (item.id) {
                     R.id.action_resort_branch -> {
-                        android.widget.Toast.makeText(this, "Пересортировка ветки", android.widget.Toast.LENGTH_SHORT).show()
+                        lifecycleScope.launch {
+                            val chatId = intent.getStringExtra("chatroomId") ?: return@launch
+
+                            // 1) найти корневую папку этого чата
+                            val rootId = getRootFolderIdForChat(chatId)
+                            if (rootId == null) {
+                                android.widget.Toast.makeText(this@Chat, "Не найден корень чата", android.widget.Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+
+                            // 2) построить предложения
+                            val repo = com.test.blabify.data.repositories.FirestoreRepositoryImpl()
+                            val suggester = com.test.blabify.domain.usecases.ResortSuggester(
+                                repo = repo,
+                                downloadText = { url ->
+                                    com.test.blabify.data.supabase.SupabaseTextDownloader.downloadTextFromUrl(url)
+                                }
+                            )
+                            val suggestions = suggester.buildForChatRoot(rootId)
+
+                            if (suggestions.isEmpty()) {
+                                android.widget.Toast.makeText(this@Chat, "Пока нечего пересортировать", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                // 3) показать окно
+                                val sheet = com.test.blabify.presentation.ui.ResortBottomSheet
+                                    .newInstance(ArrayList(suggestions))
+                                sheet.show(supportFragmentManager, "resortSheet")
+                            }
+                        }
                     }
                     R.id.action_mark_color -> {
                         android.widget.Toast.makeText(this, "Цвет закладки", android.widget.Toast.LENGTH_SHORT).show()
