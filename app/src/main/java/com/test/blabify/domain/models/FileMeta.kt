@@ -26,5 +26,9 @@ data class FileMeta(
     val exifDate: String? = null,
     val exifCamera: String? = null,
     val exifLat: Double? = null,
-    val exifLng: Double? = null
+    val exifLng: Double? = null,
+
+    val chatId: String? = null,        //ускорение
+    val rootFolderId: String? = null
+
 )

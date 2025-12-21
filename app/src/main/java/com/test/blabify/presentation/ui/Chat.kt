@@ -270,7 +270,11 @@ class Chat : AppCompatActivity() {
                         exifDate = exif["exifDate"] as String?,
                         exifCamera = exif["exifCamera"] as String?,
                         exifLat = (exif["exifLat"] as? Double),
-                        exifLng = (exif["exifLng"] as? Double)
+                        exifLng = (exif["exifLng"] as? Double),
+
+                        // для ускорения
+                        chatId = chatroomId,
+                        rootFolderId = folderId       // корень ветки
                     )
 
                     firestore.collection("folders")

@@ -12,7 +12,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.test.blabify.R
 import com.test.blabify.presentation.adapters.TreeAdapter
@@ -125,27 +124,42 @@ class Folders : AppCompatActivity() {
 
                 val newFolderId = UUID.randomUUID().toString()
                 val uid = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown"
-                val newFolderData = mapOf(
-                    "id" to newFolderId,
-                    "name" to folderName,
-                    "parentId" to parentId,
-                    "createdBy" to uid,
-                    "createdAt" to System.currentTimeMillis()
-                )
+
+//                val newFolderData = mapOf(
+//                    "id" to newFolderId,
+//                    "name" to folderName,
+//                    "parentId" to parentId,
+//                    "createdBy" to uid,
+//                    "createdAt" to System.currentTimeMillis()
+//                )
 
 
                 // единственная запись — верхний документ в /folders
-                db.collection("folders").document(newFolderId)
-                    .set(newFolderData)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Папка создана", Toast.LENGTH_SHORT).show()
-                        // перечитать детей по parentId, не сворачивая родителя
-                        adapter.refreshFolder(parentId)
+                db.collection("folders").document(parentId).get()
+                    .addOnSuccessListener { parentSnap ->
+                        val rootId = parentSnap.getString("rootFolderId") ?: parentId
+                        val newFolderData = mapOf(
+                            "id" to newFolderId,
+                            "name" to folderName,
+                            "parentId" to parentId,
+                            "createdBy" to uid,
+                            "createdAt" to System.currentTimeMillis(),
+                            "rootFolderId" to rootId          // ⬅️ ключевая строка
+                        )
+                        db.collection("folders").document(newFolderId)
+                            .set(newFolderData)
+                            .addOnSuccessListener {
+                                Toast.makeText(this, "Папка создана", Toast.LENGTH_SHORT).show()
+                                // перечитать детей по parentId, не сворачивая родителя
+                                adapter.refreshFolder(parentId)
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(this, "Ошибка создания папки", Toast.LENGTH_SHORT).show()
+                            }
                     }
                     .addOnFailureListener {
-                        Toast.makeText(this, "Ошибка создания папки", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Ошибка чтения родительской папки", Toast.LENGTH_SHORT).show()
                     }
-
             }
             .setNegativeButton("Отмена", null)
             .show()

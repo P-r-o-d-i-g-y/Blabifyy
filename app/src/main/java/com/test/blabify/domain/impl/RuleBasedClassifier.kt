@@ -11,6 +11,24 @@ class RuleBasedClassifier : FileClassifier {
     private fun tokenize(s: String): List<String> =
         s.lowercase().split(Regex("[^a-z0-9а-яё]+")).filter { it.length >= 2 }
 
+    // НОВОЕ: чистая функция подсчёта score для кандидата
+    fun score(fileTextLower: String, c: CandidateFolder): Double {
+        val nameTokens = tokenize(c.name)
+        val nameHits = nameTokens.count { t -> fileTextLower.contains(t) }.toDouble()
+
+        val segments = c.path.split('/').map { it.lowercase() }
+        val parents = segments.dropLast(1).asReversed()
+        var ancestorsBonus = 0.0
+        var w = 0.7
+        for (seg in parents) {
+            val hits = tokenize(seg).count { t -> fileTextLower.contains(t) }
+            ancestorsBonus += w * hits
+            w *= 0.7
+        }
+
+        val depthBias = 0.1 * c.level
+        return nameHits + ancestorsBonus + depthBias
+    }
 
     override suspend fun classify(
         fileName: String,
@@ -24,28 +42,13 @@ class RuleBasedClassifier : FileClassifier {
         var runnerUp = Double.NEGATIVE_INFINITY
 
         for (c in candidates) {
-            val nameTokens = tokenize(c.name)
-            val nameHits = nameTokens.count { t -> text.contains(t) }.toDouble()
-
-            val segments = c.path.split('/').map { it.lowercase() }
-            val parents = segments.dropLast(1).asReversed()
-            var ancestorsBonus = 0.0
-            var w = 0.7
-            for (seg in parents) {
-                val hits = tokenize(seg).count { t -> text.contains(t) }
-                ancestorsBonus += w * hits
-                w *= 0.7
-            }
-
-            val depthBias = 0.1 * c.level      // маленький приоритет глубине
-            val score = nameHits + ancestorsBonus + depthBias
-
-            if (score > bestScore + 1e-9) {
+            val s = score(text, c) // ← используем вынесенную формулу
+            if (s > bestScore + 1e-9) {
                 runnerUp = bestScore
-                bestScore = score
+                bestScore = s
                 best = c
-            } else if (score > runnerUp) {
-                runnerUp = score
+            } else if (s > runnerUp) {
+                runnerUp = s
             }
         }
         if (best == null || bestScore <= 0.0) {

@@ -201,28 +201,32 @@ class ChatsActivity : AppCompatActivity() {
     }
     private fun createAssociatedFolder(chatId: String, name: String, userId: String) {
         Log.d("FIRESTORE_DEBUG", "Attempting to write folder to Firestore")
+
         val folderId = UUID.randomUUID().toString()
-        val folder = Folder(
-            id = folderId,
-            name = name,
-            chatId = chatId,
-            createdBy = userId,
-            createdAt = System.currentTimeMillis(),
-            parentId = null,
-            topicId = null
+
+        val newFolderData = mapOf(
+            "id" to folderId,
+            "name" to name,
+            "parentId" to null,
+            "chatId" to chatId,
+            "createdBy" to userId,
+            "createdAt" to System.currentTimeMillis(),
+            "rootFolderId" to folderId      //  ключевая строчка
         )
-        Log.d("FIRESTORE_DEBUG", "User ID: ${userId}, Folder Name: ${name}")
+
+        //Log.d("FIRESTORE_DEBUG", "User ID: ${userId}, Folder Name: ${name}")
+
         FirebaseFirestore.getInstance()
             .collection("folders")
             .document(folderId)
-            .set(folder)
+            .set(newFolderData)
             .addOnSuccessListener {
                 Log.d("FIRESTORE_DEBUG", "Folder successfully written to Firestore")
                 Toast.makeText(this, "Папка создана", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener {
                 Log.e("FIRESTORE_DEBUG", "Error writing folder to Firestore: ${it.message}", it)
-                Toast.makeText(this, "Ошибка создания папки: ${it.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show()
             }
     }
     private fun showChatNameDialog() {

@@ -4,6 +4,12 @@ import com.test.blabify.domain.api.CandidateFolder
 import com.test.blabify.domain.api.FileClassifier
 import com.test.blabify.domain.impl.RuleBasedClassifier
 import com.test.blabify.domain.repositories.FirestoreRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 data class ResortSuggestion(
     val fileId: String,
@@ -71,16 +77,34 @@ class ResortSuggester(
             val folderId: String           // где он сейчас лежит
         )
 
-        val allFolders = buildList {
-            add(rootFolderId)             // корневую тоже проверим
-            addAll(descendants.map { it.id })
+        val allFiles = repo.getAllFilesForRoot(rootFolderId)
+
+        val filesWithPlace = allFiles.map { f ->
+            FileWithPlace(
+                file = f,
+                folderId = f.classificationFolderId ?: rootFolderId // костяль если папка не определенна
+            )
         }
 
-        val filesWithPlace = mutableListOf<FileWithPlace>()
-        for (fid in allFolders) {
-            val list = repo.getFilesInFolder(fid)
-            list.forEach { f -> filesWithPlace += FileWithPlace(f, fid) }
+        // 4) заранее скачать тексты файлов параллельно с ограничением (до val out = mutableListOf<ResortSuggestion>())
+        val textConcurrency = 20
+        val textSemaphore = Semaphore(textConcurrency)
+        val textCache = mutableMapOf<String, String>()
+
+        val textsByFileId: Map<String, String> = coroutineScope {
+            filesWithPlace.map { (file, _) ->
+                async(Dispatchers.IO) {
+                    textSemaphore.withPermit {
+                        textCache.getOrPut(file.url) {
+                            runCatching { downloadText(file.url) }
+                                .getOrNull()
+                                .orEmpty()
+                        }
+                    }.let { text -> file.id to text }
+                }
+            }.awaitAll().toMap()
         }
+
 
         val out = mutableListOf<ResortSuggestion>()
 
@@ -99,7 +123,7 @@ class ResortSuggester(
             if (file.pinned == true) continue
             if (file.movedAt != null && now - file.movedAt < MOVE_COOLDOWN_MS) continue
 
-            val fileText = runCatching { downloadText(file.url) }.getOrNull().orEmpty()
+            val fileText = textsByFileId[file.id].orEmpty()
 
             // текущая ветка: сначала из метаданных,
             // если пусто — берём по текущему расположению файла
@@ -107,8 +131,12 @@ class ResortSuggester(
             val currentBranch = file.classificationBranch ?: branchOfPath(currentPath)
 
             // кандидаты внутри ветки (или все, если ветки нет)
+            // кандидаты внутри ветки (или все, если ветки нет) — с кешем branch
+            val branchCache = mutableMapOf<String, String?>()
+            fun branchCached(p: String) = branchCache.getOrPut(p) { branchOfPath(p) }
+
             val inBranch = if (!currentBranch.isNullOrBlank())
-                candidates.filter { branchOfPath(it.path) == currentBranch }
+                candidates.filter { branchCached(it.path) == currentBranch }
             else candidates
             if (inBranch.isEmpty()) continue
 
@@ -116,12 +144,22 @@ class ResortSuggester(
             val resIn = classifier.classify(file.name ?: "", fileText, inBranch)
             if (resIn.confidence < CONF) continue
 
-            // маржа внутри ветки, чтобы отсечь неоднозначные
+            // маржа внутри ветки
             run {
-                val scores = inBranch.map { c ->
-                    classifier.classify(file.name ?: "", fileText, listOf(c)).score
+                // Если у нас RuleBasedClassifier — считаем баллы напрямую
+                val rule = (classifier as? RuleBasedClassifier)
+                val textLower = ((file.name ?: "") + " " + fileText).lowercase()
+
+                val scoresIn: List<Double> = if (rule != null) {
+                    inBranch.map { c -> rule.score(textLower, c) }
+                } else {
+                    // Fallback для других реализаций FileClassifier
+                    inBranch.map { c ->
+                        classifier.classify(file.name ?: "", fileText, listOf(c)).score
+                    }
                 }
-                val (a, b) = top2(scores)
+
+                val (a, b) = top2(scoresIn)
                 val margin = if (a.isFinite() && b.isFinite()) a - b else 999.0
                 if (margin < MARGIN) return@run
             }

@@ -4,6 +4,12 @@ import android.util.Log
 import com.test.blabify.domain.api.FileClassifier
 import com.test.blabify.domain.api.CandidateFolder
 import com.test.blabify.domain.api.ClassificationResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 /*Цель
 Автосортировка загруженных файлов по вложенным папкам одного чата так, чтобы они попадали в подходящую
@@ -37,6 +43,28 @@ class FileAutoOrganizer(
         val files = getFiles()
         Log.d("Organizer", "Files=${files.size}, candidates=${folders.size}")
 
+        // параллельно скачиваем тексты для всех файлов
+        val textConcurrency = 20
+        val textSemaphore = Semaphore(textConcurrency)
+        val textCache = mutableMapOf<String, String>()
+
+        val textsByFileId: Map<String, String> = coroutineScope {
+            files.map { file ->
+                async(Dispatchers.IO) {
+                    textSemaphore.withPermit {
+                        textCache.getOrPut(file.url) {
+                            runCatching { downloadText(file.url) }
+                                .getOrNull()
+                                .orEmpty()
+                        }
+                    }.let { text -> file.id to text }
+                }
+            }.awaitAll().toMap()
+        }
+
+
+
+
         // быстрые хелперы
         val byId = folders.associateBy { it.id }
         fun branchNameOf(c: CandidateFolder?): String? =
@@ -59,7 +87,7 @@ class FileAutoOrganizer(
 
             if (candidates.isEmpty()) continue
 
-            val text = runCatching { downloadText(file.url) }.getOrNull().orEmpty()
+            val text = textsByFileId[file.id].orEmpty()
             val res: ClassificationResult = classifier.classify(
                 fileName = file.name ?: "",
                 fileText = text,

@@ -132,18 +132,13 @@ class FirestoreRepositoryImpl : FirestoreRepository {
 
     // --- НОВОЕ: все потомки (BFS) ---
     override suspend fun getDescendantFolders(rootId: String): List<Folder> {
-        val out = mutableListOf<Folder>()
-        val queue = ArrayDeque<String>()
-        queue.add(rootId)
+        val snap = db.collection("folders")
+            .whereEqualTo("rootFolderId", rootId)
+            .get()
+            .await()
 
-        while (queue.isNotEmpty()) {
-            val pid = queue.removeFirst()
-            val snap = db.collection("folders")
-                .whereEqualTo("parentId", pid)
-                .get()
-                .await()
-
-            val children = snap.documents.map { doc ->
+        return snap.documents
+            .map { doc ->
                 Folder(
                     id = doc.id,
                     name = doc.getString("name") ?: "(без имени)",
@@ -151,14 +146,40 @@ class FirestoreRepositoryImpl : FirestoreRepository {
                     topicId = doc.getString("topicId"),
                     chatId = doc.getString("chatId"),
                     createdBy = doc.getString("createdBy") ?: "",
-                    createdAt = (doc.getLong("createdAt") ?: System.currentTimeMillis()),
+                    createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
                     childIds = emptyList(),
                     isOpened = false
                 )
             }
-            out += children
-            children.forEach { queue.addLast(it.id) }
+            .filter { it.id != rootId }  // как раньше: возвращаем только потомков, без корня
+    }
+    //для одного запроса по всем файлам ветки (ускорение)
+    override suspend fun getAllFilesForRoot(rootId: String): List<FileAutoOrganizer.FileEntry> {
+        val snap = db.collectionGroup("files")
+            .whereEqualTo("rootFolderId", rootId)
+            .get()
+            .await()
+
+        return snap.documents.mapNotNull { doc ->
+            val id = doc.id
+            val url = doc.getString("url") ?: return@mapNotNull null
+            val name = doc.getString("name")
+            val pinned = doc.getBoolean("pinned")
+            val movedAt = doc.getLong("movedAt")
+            val classificationBranch = doc.getString("classificationBranch")
+            val classificationFolderId = doc.getString("classificationFolderId")
+            val classificationScore = doc.getDouble("classificationScore")
+
+            FileAutoOrganizer.FileEntry(
+                id = id,
+                url = url,
+                name = name,
+                pinned = pinned,
+                movedAt = movedAt,
+                classificationBranch = classificationBranch,
+                classificationFolderId = classificationFolderId,
+                classificationScore = classificationScore
+            )
         }
-        return out
     }
 }

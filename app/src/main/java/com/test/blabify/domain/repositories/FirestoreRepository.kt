@@ -17,7 +17,10 @@ interface FirestoreRepository {
         classificationBranch: String?,
         classificationScore: Double?
     )
-    // НОВОЕ:
+    //
     suspend fun getChildrenFolders(parentId: String?): List<Folder>
     suspend fun getDescendantFolders(rootId: String): List<Folder>
+
+    // НОВОЕ: все файлы ветки одним запросом
+    suspend fun getAllFilesForRoot(rootId: String): List<FileAutoOrganizer.FileEntry>
 }
