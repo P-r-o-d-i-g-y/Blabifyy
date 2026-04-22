@@ -1,4 +1,8 @@
 package com.test.blabify.domain.api
+/**
+ * Модели нового ядра оценки вложения:
+ * базовая оценка, структурно скорректированная оценка и итоговое решение.
+ */
 
 data class BaseCandidateScore(
     val folder: CandidateFolder,

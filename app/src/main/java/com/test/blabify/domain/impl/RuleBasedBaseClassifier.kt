@@ -1,4 +1,8 @@
 package com.test.blabify.domain.impl
+/**
+ * Rule-based реализация базового классификатора.
+ * Считает только базовую оценку по содержимому файла.
+ */
 
 import com.test.blabify.domain.api.BaseCandidateScore
 import com.test.blabify.domain.api.BaseFileClassifier
