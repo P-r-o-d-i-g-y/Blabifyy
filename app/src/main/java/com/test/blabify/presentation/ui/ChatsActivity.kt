@@ -174,8 +174,13 @@ class ChatsActivity : AppCompatActivity() {
         val database = FirebaseDatabase.getInstance("https://blabify-a0665-default-rtdb.europe-west1.firebasedatabase.app/")
         val chatRoomsRef = database.getReference("chatRooms")
 
-        val chatId = chatRoomsRef.push().key ?: return // генерируем уникальный ID
+        val chatId = chatRoomsRef.push().key ?: run {
+            Log.e("CHAT_DEBUG", "push().key returned null")
+            return
+        } // генерируем уникальный ID
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown"
+
+        Log.d("CHAT_DEBUG", "START createNewChatRoom chatId=$chatId uid=$uid chatName=$chatName")
 
         val newChatRoom = ChatRoom(
             chatId = chatId,
@@ -190,13 +195,17 @@ class ChatsActivity : AppCompatActivity() {
             mark = ""
         )
 
+        Log.d("CHAT_DEBUG", "BEFORE RTDB setValue path=chatRooms/$chatId value=$completeChatRoom")
+
         chatRoomsRef.child(chatId).setValue(completeChatRoom).addOnSuccessListener {
+            Log.d("CHAT_DEBUG", "RTDB SUCCESS chatId=$chatId")
             chatList.add(completeChatRoom)
             adapter.updateList(chatList)
-            Log.d("FIRESTORE_DEBUG", "createAssociatedFolder() called for chat: $chatName ($chatId)")
+            Log.d("CHAT_DEBUG", "CALL createAssociatedFolder chatId=$chatId")
             createAssociatedFolder(chatId, chatName, uid)
-        }.addOnFailureListener {
-            Toast.makeText(this, "Ошибка создания чата: ${it.message}", Toast.LENGTH_SHORT).show()
+        }.addOnFailureListener { e ->
+            Log.e("CHAT_DEBUG", "RTDB FAILURE chatId=$chatId message=${e.message}", e)
+            Toast.makeText(this, "Ошибка создания чата: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
     private fun createAssociatedFolder(chatId: String, name: String, userId: String) {
