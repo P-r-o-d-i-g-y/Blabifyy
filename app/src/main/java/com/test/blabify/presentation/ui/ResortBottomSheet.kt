@@ -17,6 +17,8 @@ class ResortBottomSheet : BottomSheetDialogFragment() {
 
     companion object {
         private const val KEY_ITEMS = "items"
+        const val RESULT_KEY = "resort_sheet_result"
+        const val RESULT_ITEMS = "accepted_items"
 
         fun newInstance(items: ArrayList<ResortSuggestion>): ResortBottomSheet =
             ResortBottomSheet().apply {
@@ -34,14 +36,16 @@ class ResortBottomSheet : BottomSheetDialogFragment() {
 
         view.findViewById<RecyclerView>(R.id.rvSuggestions).apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = ResortSuggestionAdapter(list)
+            adapter = ResortSuggestionAdapterV2(list)
         }
 
         view.findViewById<TextView>(R.id.btnCancel).setOnClickListener { dismiss() }
 
         view.findViewById<TextView>(R.id.btnAgree).setOnClickListener {
-            // пока просто тост (ты потом заменишь на реальное применение)
-            android.widget.Toast.makeText(requireContext(), "Ок, применить (заглушка)", android.widget.Toast.LENGTH_SHORT).show()
+            parentFragmentManager.setFragmentResult(
+                RESULT_KEY,
+                bundleOf(RESULT_ITEMS to ArrayList(list))
+            )
             dismiss()
         }
     }

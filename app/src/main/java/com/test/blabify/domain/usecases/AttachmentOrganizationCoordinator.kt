@@ -18,8 +18,17 @@ class AttachmentOrganizationCoordinator(
     private val getFolders: suspend () -> List<CandidateFolder>,
     private val getFiles: suspend () -> List<FileAutoOrganizer.FileEntry>,
     private val downloadText: suspend (String) -> String,
+    //Для 1-го контура: текущий источник один и задается снаружи
     private val moveFile: suspend (
         fileId: String,
+        targetFolderId: String,
+        classificationBranch: String?,
+        classificationScore: Double?
+    ) -> Unit,
+    // Для 2-го контура: нужен source folder
+    private val moveResortFile: suspend (
+        fileId: String,
+        fromFolderId: String,
         targetFolderId: String,
         classificationBranch: String?,
         classificationScore: Double?
@@ -47,13 +56,11 @@ class AttachmentOrganizationCoordinator(
 
             when (val decision = primaryPlacementContour.decide(file, evaluation)) {
                 is PrimaryPlacementContour.Decision.Skip -> Unit
-
                 is PrimaryPlacementContour.Decision.Move -> {
                     Log.d(
                         "AttachmentCoordinator",
                         "Move ${decision.fileId} -> ${decision.targetFolderId} (${decision.targetFolderPath})"
                     )
-
                     moveFile(
                         decision.fileId,
                         decision.targetFolderId,
@@ -67,7 +74,6 @@ class AttachmentOrganizationCoordinator(
 
     suspend fun buildResortSuggestions(): List<ResortSuggestionV2> {
         Log.d("AttachmentCoordinator", "Building resort suggestions")
-
         val folders = getFolders()
         val files = getFiles()
         val textsByFileId = preloadTexts(files)
@@ -94,6 +100,27 @@ class AttachmentOrganizationCoordinator(
         }
 
         return suggestions
+    }
+
+    suspend fun applyResortSuggestions(
+        suggestions: List<ResortSuggestionV2>
+    ): Int {
+        var applied = 0
+
+        for (suggestion in suggestions) {
+            val fromFolderId = suggestion.fromFolderId ?: continue
+
+            moveResortFile(
+                suggestion.fileId,
+                fromFolderId,
+                suggestion.toFolderId,
+                suggestion.targetBranch,
+                suggestion.targetScore
+            )
+            applied++
+        }
+
+        return applied
     }
 
     private suspend fun preloadTexts(
