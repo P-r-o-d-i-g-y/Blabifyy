@@ -41,6 +41,7 @@ class Chat : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: MessageAdapter
     private val messages = mutableListOf<Message>()
+    private var pendingResortSuggestionsV2: List<com.test.blabify.domain.usecases.ResortSuggestionV2> = emptyList()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -53,6 +54,26 @@ class Chat : AppCompatActivity() {
         val btnBack = findViewById<ImageButton>(R.id.btn_back)
         btnBack.setOnClickListener {
             finish() // Закрывает Chat и возвращает на предыдущую активити
+        }
+        supportFragmentManager.setFragmentResultListener(
+            ResortBottomSheet.RESULT_KEY,
+            this
+        ) { _, bundle ->
+            val accepted = bundle.getBoolean(ResortBottomSheet.RESULT_ACCEPTED, false)
+
+            if (!accepted) {
+                pendingResortSuggestionsV2 = emptyList()
+                return@setFragmentResultListener
+            }
+
+            // Пока заглушка на применение предложений второго контура
+            android.widget.Toast.makeText(
+                this,
+                "Ок, применить (заглушка): ${pendingResortSuggestionsV2.size}",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+
+            pendingResortSuggestionsV2 = emptyList()
         }
         messageInput = findViewById(R.id.message_input)
         val sendMessageBtn = findViewById<ImageButton>(R.id.send_mes)
@@ -295,7 +316,7 @@ class Chat : AppCompatActivity() {
                                 val descendants = repo.getDescendantFolders(folderId)
 
                                 // 2) Индекс детей по parentId
-                                val childrenByParent = descendants.groupBy { it.parentId }
+                                /*val childrenByParent = descendants.groupBy { it.parentId }
 
                                 // 3) DFS: строим кандидатов с level и path
                                 val candidates = mutableListOf<com.test.blabify.domain.api.CandidateFolder>()
@@ -331,7 +352,17 @@ class Chat : AppCompatActivity() {
                                     },
                                     classifier = com.test.blabify.domain.impl.RuleBasedClassifier()
                                 )
-                                organizer.organize()
+                                organizer.organize()*/
+                                // 4) Новый координатор: после появления файла всегда выполняем 1-й контур
+                                val candidates = buildCandidates(folderId, descendants)
+
+                                val coordinator = buildCoordinator(
+                                    rootFolderId = folderId,
+                                    candidates = candidates,
+                                    repo = repo
+                                )
+
+                                coordinator.runPrimaryPlacement()
                             }
                         }
                         .addOnFailureListener { e ->
@@ -386,20 +417,41 @@ class Chat : AppCompatActivity() {
 
                             // 2) построить предложения
                             val repo = com.test.blabify.data.repositories.FirestoreRepositoryImpl()
-                            val suggester = com.test.blabify.domain.usecases.ResortSuggester(
-                                repo = repo,
-                                downloadText = { url ->
-                                    com.test.blabify.data.supabase.SupabaseTextDownloader.downloadTextFromUrl(url)
-                                }
-                            )
-                            val suggestions = suggester.buildForChatRoot(rootId)
 
-                            if (suggestions.isEmpty()) {
-                                android.widget.Toast.makeText(this@Chat, "Пока нечего пересортировать", android.widget.Toast.LENGTH_SHORT).show()
+                            val descendants = repo.getDescendantFolders(rootId)
+                            val candidates = buildCandidates(rootId, descendants)
+
+                            val coordinator = buildCoordinator(
+                                rootFolderId = rootId,
+                                candidates = candidates,
+                                repo = repo
+                            )
+
+                            val suggestionsV2 = coordinator.buildResortSuggestions()
+
+                            if (suggestionsV2.isEmpty()) {
+                                android.widget.Toast.makeText(
+                                    this@Chat,
+                                    "Пока нечего пересортировать",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
                             } else {
-                                // 3) показать окно
+                                pendingResortSuggestionsV2 = suggestionsV2
+
+                                val uiSuggestions = ArrayList(
+                                    suggestionsV2.map {
+                                        com.test.blabify.domain.usecases.ResortSuggestion(
+                                            fileId = it.fileId,
+                                            fileName = it.fileName,
+                                            fromPath = it.fromPath,
+                                            toPath = it.toPath
+                                        )
+                                    }
+                                )
+
                                 val sheet = com.test.blabify.presentation.ui.ResortBottomSheet
-                                    .newInstance(ArrayList(suggestions))
+                                    .newInstance(uiSuggestions)
+
                                 sheet.show(supportFragmentManager, "resortSheet")
                             }
                         }
@@ -412,6 +464,67 @@ class Chat : AppCompatActivity() {
             // белая "пилюля" между двумя пунктами
             isSectionBreak = { pos -> pos == 1 }
         ).show(anchor)
+    }
+    private fun buildCandidates(
+        rootFolderId: String,
+        descendants: List<com.test.blabify.domain.models.Folder>
+    ): List<com.test.blabify.domain.api.CandidateFolder> {
+        val childrenByParent = descendants.groupBy { it.parentId }
+        val candidates = mutableListOf<com.test.blabify.domain.api.CandidateFolder>()
+
+        fun walk(parentId: String, level: Int, path: String) {
+            val kids = childrenByParent[parentId].orEmpty()
+            for (f in kids) {
+                val childPath = if (path.isEmpty()) f.name else "$path/${f.name}"
+                candidates += com.test.blabify.domain.api.CandidateFolder(
+                    id = f.id,
+                    name = f.name,
+                    level = level,
+                    path = childPath
+                )
+                walk(f.id, level + 1, childPath)
+            }
+        }
+
+        walk(rootFolderId, 0, "")
+        return candidates
+    }
+    private fun buildCoordinator(
+        rootFolderId: String,
+        candidates: List<com.test.blabify.domain.api.CandidateFolder>,
+        repo: com.test.blabify.data.repositories.FirestoreRepositoryImpl
+    ): com.test.blabify.domain.usecases.AttachmentOrganizationCoordinator {
+        return com.test.blabify.domain.usecases.AttachmentOrganizationCoordinator(
+            getFolders = { candidates },
+            getFiles = { repo.getFilesInFolder(rootFolderId) },
+            downloadText = { url ->
+                com.test.blabify.data.supabase.SupabaseTextDownloader.downloadTextFromUrl(url)
+            },
+            moveFile = { fileId, targetId, branch, score ->
+                repo.updateFileFolder(
+                    fileId = fileId,
+                    parentId = rootFolderId,
+                    childId = targetId,
+                    classificationBranch = branch,
+                    classificationScore = score
+                )
+            },
+            moveResortFile = { fileId, fromFolderId, targetId, branch, score ->
+                repo.updateFileFolder(
+                    fileId = fileId,
+                    parentId = fromFolderId,
+                    childId = targetId,
+                    classificationBranch = branch,
+                    classificationScore = score
+                )
+            },
+            evaluationCore = com.test.blabify.domain.usecases.AttachmentOrganizationCore(
+                baseClassifier = com.test.blabify.domain.impl.RuleBasedBaseClassifier(),
+                structuralCorrector = com.test.blabify.domain.impl.DefaultStructuralCorrector()
+            ),
+            primaryPlacementContour = com.test.blabify.domain.usecases.PrimaryPlacementContour(),
+            resortContour = com.test.blabify.domain.usecases.ResortContour()
+        )
     }
 
 }
