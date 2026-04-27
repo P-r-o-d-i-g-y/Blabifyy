@@ -131,7 +131,7 @@ class Chat : AppCompatActivity() {
     @Deprecated("onActivityResult is deprecated")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        Log.d("FileUpload", "onActivityResult: FILE_PICK_CODE matched and result OK")
+
         if (requestCode == FILE_PICK_CODE && resultCode == RESULT_OK && data != null && data.data != null) {
             val fileUri = data.data
             Log.d("FileUpload", "Selected fileUri: $fileUri")
@@ -140,10 +140,9 @@ class Chat : AppCompatActivity() {
                     val chatRoomId = intent.getStringExtra("chatroomId") ?: return@launch
                     val userName = intent.getStringExtra("userName") ?: "Аноним"
                     val fileName = fileUri.lastPathSegment ?: "file"
-                    val inputStream = contentResolver.openInputStream(fileUri)
-                    val fileSize = inputStream?.available()?.toLong() ?: 0L
-                    Log.d("FileUpload", "InputStream available = $fileSize bytes")
-
+                    val fileSize = getFileSize(fileUri)
+                    Log.d("FileUpload", "Resolved fileSize = $fileSize bytes")
+                    Log.d("FileUpload", "onActivityResult: FILE_PICK_CODE matched and result OK")
                     val fileUrl = uploadFileToSupabase(this@Chat, fileUri, chatRoomId)
                     Log.d("FileUpload", "Uploaded fileUrl: $fileUrl")
                     if (fileUrl != null) {
@@ -180,6 +179,18 @@ class Chat : AppCompatActivity() {
                 }
             }
         }
+    }
+    private fun getFileSize(uri: android.net.Uri): Long {
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+            if (sizeIndex >= 0 && cursor.moveToFirst()) {
+                return cursor.getLong(sizeIndex)
+            }
+        }
+
+        return contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
+            afd.length
+        } ?: 0L
     }
 
     fun sendMessageToUser(chatroomId: String, userName: String, messageText: String? = null, attachmentUrl: String? = null, attachmentType: AttachmentType? = null, fileName: String? = null, fileSize: Long? = null) {
@@ -373,22 +384,25 @@ class Chat : AppCompatActivity() {
     }
     private fun extractImageMeta(uri: android.net.Uri): Map<String, Any?> {
         return try {
-            val input = contentResolver.openInputStream(uri) ?: return emptyMap()
-            val exif = androidx.exifinterface.media.ExifInterface(input)
+            contentResolver.openInputStream(uri)?.use { input ->
+                val exif = androidx.exifinterface.media.ExifInterface(input)
 
-            val date = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL)
-                ?: exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME)
-            val latLong = FloatArray(2)
-            val hasLatLng = exif.getLatLong(latLong)
-            val make = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MAKE)
-            val model = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MODEL)
+                val date =
+                    exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL)
+                        ?: exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME)
 
-            mapOf(
-                "exifDate" to date,
-                "exifCamera" to listOfNotNull(make, model).joinToString(" ").ifBlank { null },
-                "exifLat" to if (hasLatLng) latLong[0].toDouble() else null,
-                "exifLng" to if (hasLatLng) latLong[1].toDouble() else null
-            )
+                val latLong = FloatArray(2)
+                val hasLatLng = exif.getLatLong(latLong)
+                val make = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MAKE)
+                val model = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MODEL)
+
+                mapOf(
+                    "exifDate" to date,
+                    "exifCamera" to listOfNotNull(make, model).joinToString(" ").ifBlank { null },
+                    "exifLat" to if (hasLatLng) latLong[0].toDouble() else null,
+                    "exifLng" to if (hasLatLng) latLong[1].toDouble() else null
+                )
+            } ?: emptyMap()
         } catch (_: Exception) {
             emptyMap()
         }
