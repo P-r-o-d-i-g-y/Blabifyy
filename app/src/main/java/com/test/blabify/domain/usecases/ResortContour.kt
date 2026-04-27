@@ -1,6 +1,7 @@
 package com.test.blabify.domain.usecases
 
 import com.test.blabify.domain.api.CoreEvaluationResult
+import com.test.blabify.domain.models.OrganizableFile
 import java.io.Serializable
 
 /**
@@ -37,7 +38,7 @@ class ResortContour(
     }
 
     fun decide(
-        file: FileAutoOrganizer.FileEntry,
+        file: OrganizableFile,
         currentPath: String,
         evaluation: CoreEvaluationResult
     ): Decision {

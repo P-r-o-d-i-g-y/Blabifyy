@@ -2,6 +2,7 @@ package com.test.blabify.domain.usecases
 
 import android.util.Log
 import com.test.blabify.domain.api.CandidateFolder
+import com.test.blabify.domain.models.OrganizableFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -16,7 +17,7 @@ import kotlinx.coroutines.sync.withPermit
  */
 class AttachmentOrganizationCoordinator(
     private val getFolders: suspend () -> List<CandidateFolder>,
-    private val getFiles: suspend () -> List<FileAutoOrganizer.FileEntry>,
+    private val getFiles: suspend () -> List<OrganizableFile>,
     private val downloadText: suspend (String) -> String,
     //Для 1-го контура: текущий источник один и задается снаружи
     private val moveFile: suspend (
@@ -124,7 +125,7 @@ class AttachmentOrganizationCoordinator(
     }
 
     private suspend fun preloadTexts(
-        files: List<FileAutoOrganizer.FileEntry>
+        files: List<OrganizableFile>
     ): Map<String, String> {
         val textConcurrency = 20
         val textSemaphore = Semaphore(textConcurrency)
@@ -148,7 +149,7 @@ class AttachmentOrganizationCoordinator(
     }
 
     private fun selectCandidates(
-        file: FileAutoOrganizer.FileEntry,
+        file: OrganizableFile,
         folders: List<CandidateFolder>
     ): List<CandidateFolder> {
         return if (!file.classificationBranch.isNullOrBlank()) {

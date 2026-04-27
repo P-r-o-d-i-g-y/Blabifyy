@@ -4,11 +4,12 @@ package com.test.blabify.domain.repositories
 
 import com.test.blabify.domain.usecases.FileAutoOrganizer
 import com.test.blabify.domain.models.Folder
+import com.test.blabify.domain.models.OrganizableFile
 
 interface FirestoreRepository {
     suspend fun getChildFolderNames(parentFolderId: String): List<String>
     suspend fun getChildFolderIdByName(parentFolderId: String, folderName: String): String?
-    suspend fun getFilesInFolder(parentFolderId: String): List<FileAutoOrganizer.FileEntry>
+    suspend fun getFilesInFolder(parentFolderId: String): List<OrganizableFile>
     // НОВАЯ сигнатура: передаём ветку и счёт
     suspend fun updateFileFolder(
         fileId: String,
@@ -22,5 +23,5 @@ interface FirestoreRepository {
     suspend fun getDescendantFolders(rootId: String): List<Folder>
 
     // НОВОЕ: все файлы ветки одним запросом
-    suspend fun getAllFilesForRoot(rootId: String): List<FileAutoOrganizer.FileEntry>
+    suspend fun getAllFilesForRoot(rootId: String): List<OrganizableFile>
 }

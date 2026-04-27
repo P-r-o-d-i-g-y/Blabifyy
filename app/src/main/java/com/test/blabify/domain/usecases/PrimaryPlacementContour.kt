@@ -5,6 +5,7 @@ package com.test.blabify.domain.usecases
  * и решает, перемещать файл или нет.
  */
 import com.test.blabify.domain.api.CoreEvaluationResult
+import com.test.blabify.domain.models.OrganizableFile
 
 class PrimaryPlacementContour(
     private val confidenceThreshold: Double = 0.5,
@@ -23,7 +24,7 @@ class PrimaryPlacementContour(
     }
 
     fun decide(
-        file: FileAutoOrganizer.FileEntry,
+        file: OrganizableFile,
         evaluation: CoreEvaluationResult
     ): Decision {
         if (file.pinned == true) {

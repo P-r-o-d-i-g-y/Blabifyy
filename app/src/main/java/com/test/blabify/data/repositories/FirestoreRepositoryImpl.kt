@@ -5,6 +5,7 @@ import android.util.Log
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.test.blabify.domain.models.Folder
+import com.test.blabify.domain.models.OrganizableFile
 import com.test.blabify.domain.repositories.FirestoreRepository
 import com.test.blabify.domain.usecases.FileAutoOrganizer
 import kotlinx.coroutines.tasks.await
@@ -36,7 +37,7 @@ class FirestoreRepositoryImpl : FirestoreRepository {
     }
 
     /** Файлы папки: /folders/{parentFolderId}/files */
-    override suspend fun getFilesInFolder(parentFolderId: String): List<FileAutoOrganizer.FileEntry> {
+    override suspend fun getFilesInFolder(parentFolderId: String): List<OrganizableFile> {
         val snap = db.collection("folders")
             .document(parentFolderId)
             .collection("files")
@@ -53,7 +54,7 @@ class FirestoreRepositoryImpl : FirestoreRepository {
             val classificationFolderId = it.getString("classificationFolderId")
             val classificationScore = it.getDouble("classificationScore")
 
-            FileAutoOrganizer.FileEntry(
+            OrganizableFile(
                 id = id,
                 url = url,
                 name = name,
@@ -154,7 +155,7 @@ class FirestoreRepositoryImpl : FirestoreRepository {
             .filter { it.id != rootId }  // как раньше: возвращаем только потомков, без корня
     }
     //для одного запроса по всем файлам ветки (ускорение)
-    override suspend fun getAllFilesForRoot(rootId: String): List<FileAutoOrganizer.FileEntry> {
+    override suspend fun getAllFilesForRoot(rootId: String): List<OrganizableFile> {
         val snap = db.collectionGroup("files")
             .whereEqualTo("rootFolderId", rootId)
             .get()
@@ -170,7 +171,7 @@ class FirestoreRepositoryImpl : FirestoreRepository {
             val classificationFolderId = doc.getString("classificationFolderId")
             val classificationScore = doc.getDouble("classificationScore")
 
-            FileAutoOrganizer.FileEntry(
+            OrganizableFile(
                 id = id,
                 url = url,
                 name = name,

@@ -326,44 +326,6 @@ class Chat : AppCompatActivity() {
                                 // 1) Все потомки корневой папки чата
                                 val descendants = repo.getDescendantFolders(folderId)
 
-                                // 2) Индекс детей по parentId
-                                /*val childrenByParent = descendants.groupBy { it.parentId }
-
-                                // 3) DFS: строим кандидатов с level и path
-                                val candidates = mutableListOf<com.test.blabify.domain.api.CandidateFolder>()
-
-                                fun walk(parentId: String, level: Int, path: String) {
-                                    val kids = childrenByParent[parentId].orEmpty()
-                                    for (f in kids) {
-                                        val childPath = if (path.isEmpty()) f.name else "$path/${f.name}"
-                                        candidates += com.test.blabify.domain.api.CandidateFolder(
-                                            id = f.id,
-                                            name = f.name,
-                                            level = level,
-                                            path = childPath
-                                        )
-                                        walk(f.id, level + 1, childPath)
-                                    }
-                                }
-                                walk(folderId, 0, "") // корень не добавляем — только его подпапки
-
-                                // 4) Организатор по новому контракту (с веткой и score)
-                                val organizer = com.test.blabify.domain.usecases.FileAutoOrganizer(
-                                    getFolders = { candidates },
-                                    getFiles = { repo.getFilesInFolder(folderId) },
-                                    downloadText = { url -> com.test.blabify.data.supabase.SupabaseTextDownloader.downloadTextFromUrl(url) },
-                                    moveFile = { fileId, targetId, branch, score ->
-                                        repo.updateFileFolder(
-                                            fileId = fileId,
-                                            parentId = folderId,
-                                            childId = targetId,
-                                            classificationBranch = branch,
-                                            classificationScore = score
-                                        )
-                                    },
-                                    classifier = com.test.blabify.domain.impl.RuleBasedClassifier()
-                                )
-                                organizer.organize()*/
                                 // 4) Новый координатор: после появления файла всегда выполняем 1-й контур
                                 val candidates = buildCandidates(folderId, descendants)
 
