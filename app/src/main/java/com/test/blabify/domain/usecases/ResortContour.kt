@@ -45,10 +45,6 @@ class ResortContour(
             return Decision.Skip
         }
 
-        if (file.classificationFolderId.isNullOrBlank()) {
-            return Decision.Skip
-        }
-
         if (file.movedAt != null && System.currentTimeMillis() - file.movedAt < moveCooldownMs) {
             return Decision.Skip
         }
