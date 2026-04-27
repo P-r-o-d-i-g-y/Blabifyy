@@ -3,6 +3,7 @@ package com.test.blabify.domain.usecases
 import com.test.blabify.domain.api.CandidateFolder
 import com.test.blabify.domain.api.FileClassifier
 import com.test.blabify.domain.impl.RuleBasedClassifier
+import com.test.blabify.domain.models.OrganizableFile
 import com.test.blabify.domain.repositories.FirestoreRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -73,7 +74,7 @@ class ResortSuggester(
 
         // 3) собрать файлы из КАЖДОЙ папки (и из корня)
         data class FileWithPlace(
-            val file: FileAutoOrganizer.FileEntry,
+            val file: OrganizableFile,
             val folderId: String           // где он сейчас лежит
         )
 

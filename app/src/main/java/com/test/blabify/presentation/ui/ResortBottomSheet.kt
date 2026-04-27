@@ -10,7 +10,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.test.blabify.R
-import com.test.blabify.domain.usecases.ResortSuggestion
+import com.test.blabify.domain.usecases.ResortSuggestionV2
 import com.test.blabify.presentation.adapters.ResortSuggestionAdapter
 
 class ResortBottomSheet : BottomSheetDialogFragment() {
@@ -20,7 +20,7 @@ class ResortBottomSheet : BottomSheetDialogFragment() {
         const val RESULT_KEY = "resort_sheet_result"
         const val RESULT_ACCEPTED = "accepted_items"
 
-        fun newInstance(items: ArrayList<ResortSuggestion>): ResortBottomSheet =
+        fun newInstance(items: ArrayList<ResortSuggestionV2>): ResortBottomSheet =
             ResortBottomSheet().apply {
                 arguments = bundleOf(KEY_ITEMS to items)
             }
@@ -31,7 +31,7 @@ class ResortBottomSheet : BottomSheetDialogFragment() {
     ): View = inflater.inflate(R.layout.bottom_sheet_resort, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val list = (arguments?.getSerializable(KEY_ITEMS) as? ArrayList<*>)?.filterIsInstance<ResortSuggestion>()
+        val list = (arguments?.getSerializable(KEY_ITEMS) as? ArrayList<*>)?.filterIsInstance<ResortSuggestionV2>()
             ?: emptyList()
 
         view.findViewById<RecyclerView>(R.id.rvSuggestions).apply {

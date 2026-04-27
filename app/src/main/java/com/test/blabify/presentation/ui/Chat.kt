@@ -412,19 +412,8 @@ class Chat : AppCompatActivity() {
                             } else {
                                 pendingResortSuggestionsV2 = suggestionsV2
 
-                                val uiSuggestions = ArrayList(
-                                    suggestionsV2.map {
-                                        com.test.blabify.domain.usecases.ResortSuggestion(
-                                            fileId = it.fileId,
-                                            fileName = it.fileName,
-                                            fromPath = it.fromPath,
-                                            toPath = it.toPath
-                                        )
-                                    }
-                                )
-
                                 val sheet = com.test.blabify.presentation.ui.ResortBottomSheet
-                                    .newInstance(uiSuggestions)
+                                    .newInstance(ArrayList(suggestionsV2))
 
                                 sheet.show(supportFragmentManager, "resortSheet")
                             }

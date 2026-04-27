@@ -6,10 +6,10 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.test.blabify.R
-import com.test.blabify.domain.usecases.ResortSuggestion
+import com.test.blabify.domain.usecases.ResortSuggestionV2
 
 class ResortSuggestionAdapter(
-    private val items: List<ResortSuggestion>
+    private val items: List<ResortSuggestionV2>
 ) : RecyclerView.Adapter<ResortSuggestionAdapter.VH>() {
 
     inner class VH(v: View) : RecyclerView.ViewHolder(v) {
