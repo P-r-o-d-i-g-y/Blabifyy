@@ -7,7 +7,6 @@ import com.google.firebase.ktx.Firebase
 import com.test.blabify.domain.models.Folder
 import com.test.blabify.domain.models.OrganizableFile
 import com.test.blabify.domain.repositories.FirestoreRepository
-import com.test.blabify.domain.usecases.FileAutoOrganizer
 import kotlinx.coroutines.tasks.await
 
 class FirestoreRepositoryImpl : FirestoreRepository {

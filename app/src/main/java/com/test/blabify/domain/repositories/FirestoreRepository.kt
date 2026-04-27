@@ -2,7 +2,6 @@ package com.test.blabify.domain.repositories
 //Интерфейс-описание, чтобы domain не знал про Firebase
 //Интерфейс нужен, чтобы domain (usecase-слой) не зависел от конкретных реализаций Firebase/Supabase. Это чистая архитектура.
 
-import com.test.blabify.domain.usecases.FileAutoOrganizer
 import com.test.blabify.domain.models.Folder
 import com.test.blabify.domain.models.OrganizableFile
 

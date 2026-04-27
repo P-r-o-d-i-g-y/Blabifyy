@@ -31,8 +31,6 @@ import com.test.blabify.presentation.ui.widgets.ColorPopup
 import com.test.blabify.presentation.adapters.ColorMenuItem
 import kotlinx.coroutines.tasks.await
 
-
-
 class Chat : AppCompatActivity() {
     companion object {
         const val FILE_PICK_CODE = 1001
