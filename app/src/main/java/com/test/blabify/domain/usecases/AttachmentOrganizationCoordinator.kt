@@ -16,8 +16,10 @@ import kotlinx.coroutines.sync.withPermit
  * и применяет итоговое действие.
  */
 class AttachmentOrganizationCoordinator(
+    private val rootFolderId: String,
     private val getFolders: suspend () -> List<CandidateFolder>,
-    private val getFiles: suspend () -> List<OrganizableFile>,
+    private val getPrimaryFiles: suspend () -> List<OrganizableFile>,
+    private val getResortFiles: suspend () -> List<OrganizableFile>,
     private val downloadText: suspend (String) -> String,
     //Для 1-го контура: текущий источник один и задается снаружи
     private val moveFile: suspend (
@@ -42,7 +44,7 @@ class AttachmentOrganizationCoordinator(
         Log.d("AttachmentCoordinator", "Starting primary placement")
 
         val folders = getFolders()
-        val files = getFiles()
+        val files = getPrimaryFiles()
         val textsByFileId = preloadTexts(files)
 
         for (file in files) {
@@ -76,7 +78,7 @@ class AttachmentOrganizationCoordinator(
     suspend fun buildResortSuggestions(): List<ResortSuggestionV2> {
         Log.d("AttachmentCoordinator", "Building resort suggestions")
         val folders = getFolders()
-        val files = getFiles()
+        val files = getResortFiles()
         val textsByFileId = preloadTexts(files)
         val foldersById = folders.associateBy { it.id }
 
@@ -109,7 +111,7 @@ class AttachmentOrganizationCoordinator(
         var applied = 0
 
         for (suggestion in suggestions) {
-            val fromFolderId = suggestion.fromFolderId ?: continue
+            val fromFolderId = suggestion.fromFolderId ?: rootFolderId
 
             moveResortFile(
                 suggestion.fileId,

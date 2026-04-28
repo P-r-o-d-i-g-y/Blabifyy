@@ -480,7 +480,10 @@ class Chat : AppCompatActivity() {
     ): com.test.blabify.domain.usecases.AttachmentOrganizationCoordinator {
         return com.test.blabify.domain.usecases.AttachmentOrganizationCoordinator(
             getFolders = { candidates },
-            getFiles = { repo.getFilesInFolder(rootFolderId) },
+            // 1-й контур: после загрузки файла смотрим root-папку
+            getPrimaryFiles = { repo.getFilesInFolder(rootFolderId) },
+            // 2-й контур: пересортировка должна смотреть ВСЮ ветку
+            getResortFiles = { repo.getAllFilesForRoot(rootFolderId) },
             downloadText = { url ->
                 com.test.blabify.data.supabase.SupabaseTextDownloader.downloadTextFromUrl(url)
             },
@@ -493,6 +496,7 @@ class Chat : AppCompatActivity() {
                     classificationScore = score
                 )
             },
+            rootFolderId = rootFolderId,
             moveResortFile = { fileId, fromFolderId, targetId, branch, score ->
                 repo.updateFileFolder(
                     fileId = fileId,
