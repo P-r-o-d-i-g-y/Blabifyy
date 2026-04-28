@@ -48,13 +48,12 @@ class AttachmentOrganizationCoordinator(
         val textsByFileId = preloadTexts(files)
 
         for (file in files) {
-            val candidates = selectCandidates(file, folders)
-            if (candidates.isEmpty()) continue
+            if (folders.isEmpty()) continue
 
             val evaluation = evaluationCore.evaluate(
                 fileName = file.name ?: "",
                 fileText = textsByFileId[file.id].orEmpty(),
-                candidates = candidates
+                candidates = folders
             )
 
             when (val decision = primaryPlacementContour.decide(file, evaluation)) {
@@ -93,19 +92,18 @@ class AttachmentOrganizationCoordinator(
         val suggestions = mutableListOf<ResortSuggestionV2>()
 
         for (file in files) {
-            val candidates = selectCandidates(file, folders)
             Log.d(
                 "AttachmentCoordinator",
                 "Resort file=${file.name}, branch=${file.classificationBranch}, " +
                         "folderId=${file.classificationFolderId}, prevScore=${file.classificationScore}, " +
-                        "candidates=${candidates.size}, candidatePaths=${candidates.joinToString { it.path }}"
+                        "candidates=${folders.size}, candidatePaths=${folders.joinToString { it.path }}"
             )
-            if (candidates.isEmpty()) continue
+            if (folders.isEmpty()) continue
 
             val evaluation = evaluationCore.evaluate(
                 fileName = file.name ?: "",
                 fileText = textsByFileId[file.id].orEmpty(),
-                candidates = candidates
+                candidates = folders
             )
             val top = evaluation.rankedCandidates
                 .take(5)
@@ -182,7 +180,8 @@ class AttachmentOrganizationCoordinator(
         }
     }
 
-    private fun selectCandidates(
+    //@удалить
+    /*private fun selectCandidates(
         file: OrganizableFile,
         folders: List<CandidateFolder>
     ): List<CandidateFolder> {
@@ -193,7 +192,7 @@ class AttachmentOrganizationCoordinator(
         } else {
             folders
         }
-    }
+    }*/
 
     private fun branchNameOf(candidate: CandidateFolder?): String? {
         return candidate?.path
