@@ -79,6 +79,14 @@ class AttachmentOrganizationCoordinator(
         Log.d("AttachmentCoordinator", "Building resort suggestions")
         val folders = getFolders()
         val files = getResortFiles()
+        Log.d(
+            "AttachmentCoordinator",
+            "Resort input: folders=${folders.size}, files=${files.size}"
+        )
+        Log.d(
+            "AttachmentCoordinator",
+            "Resort folders: ${folders.joinToString { it.path }}"
+        )
         val textsByFileId = preloadTexts(files)
         val foldersById = folders.associateBy { it.id }
 
@@ -86,6 +94,12 @@ class AttachmentOrganizationCoordinator(
 
         for (file in files) {
             val candidates = selectCandidates(file, folders)
+            Log.d(
+                "AttachmentCoordinator",
+                "Resort file=${file.name}, branch=${file.classificationBranch}, " +
+                        "folderId=${file.classificationFolderId}, prevScore=${file.classificationScore}, " +
+                        "candidates=${candidates.size}, candidatePaths=${candidates.joinToString { it.path }}"
+            )
             if (candidates.isEmpty()) continue
 
             val evaluation = evaluationCore.evaluate(
@@ -93,12 +107,31 @@ class AttachmentOrganizationCoordinator(
                 fileText = textsByFileId[file.id].orEmpty(),
                 candidates = candidates
             )
+            val top = evaluation.rankedCandidates
+                .take(5)
+                .joinToString { "${it.folder.path}:${it.finalScore}" }
+
+            Log.d(
+                "AttachmentCoordinator",
+                "Resort best for ${file.name}: " +
+                        "best=${evaluation.rankedCandidates.firstOrNull()?.folder?.path}, " +
+                        "gap=${evaluation.decision.confidenceGap}, top=$top"
+            )
 
             val currentPath = foldersById[file.classificationFolderId]?.path ?: "(корень)"
 
             when (val decision = resortContour.decide(file, currentPath, evaluation)) {
-                is ResortContour.Decision.Skip -> Unit
-                is ResortContour.Decision.Suggest -> suggestions += decision.suggestion
+                is ResortContour.Decision.Skip -> {
+                    Log.d("AttachmentCoordinator", "Resort skip: file=${file.name}")
+                }
+                is ResortContour.Decision.Suggest -> {
+                    Log.d(
+                        "AttachmentCoordinator",
+                        "Resort suggest: ${decision.suggestion.fileName} " +
+                                "${decision.suggestion.fromPath} -> ${decision.suggestion.toPath}"
+                    )
+                    suggestions += decision.suggestion
+                }
             }
         }
 

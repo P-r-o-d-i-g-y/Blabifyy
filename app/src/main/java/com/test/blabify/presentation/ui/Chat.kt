@@ -288,6 +288,8 @@ class Chat : AppCompatActivity() {
 
         firestore.collection("folders")
             .whereEqualTo("chatId", chatroomId)
+            .whereEqualTo("parentId", null)
+            .limit(1)
             .get()
             .addOnSuccessListener { result ->
                 if (!result.isEmpty) {
