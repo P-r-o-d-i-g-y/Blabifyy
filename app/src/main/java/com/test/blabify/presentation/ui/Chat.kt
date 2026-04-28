@@ -39,7 +39,6 @@ class Chat : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: MessageAdapter
     private val messages = mutableListOf<Message>()
-    private var pendingResortSuggestionsV2: List<com.test.blabify.domain.usecases.ResortSuggestionV2> = emptyList()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -57,21 +56,45 @@ class Chat : AppCompatActivity() {
             ResortBottomSheet.RESULT_KEY,
             this
         ) { _, bundle ->
-            val accepted = bundle.getBoolean(ResortBottomSheet.RESULT_ACCEPTED, false)
+            val selectedSuggestions = (bundle.getSerializable(ResortBottomSheet.RESULT_ITEMS) as? ArrayList<*>)
+                ?.filterIsInstance<com.test.blabify.domain.usecases.ResortSuggestionV2>()
+                .orEmpty()
 
-            if (!accepted) {
-                pendingResortSuggestionsV2 = emptyList()
+            if (selectedSuggestions.isEmpty()) {
                 return@setFragmentResultListener
             }
+            lifecycleScope.launch {
+                val chatId = intent.getStringExtra("chatroomId") ?: return@launch
 
-            // Пока заглушка на применение предложений второго контура
-            android.widget.Toast.makeText(
-                this,
-                "Ок, применить (заглушка): ${pendingResortSuggestionsV2.size}",
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
+                val rootId = getRootFolderIdForChat(chatId)
+                if (rootId == null) {
+                    android.widget.Toast.makeText(
+                        this@Chat,
+                        "Не найден корень чата",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
 
-            pendingResortSuggestionsV2 = emptyList()
+                val repo = FirestoreRepositoryImpl()
+
+                val descendants = repo.getDescendantFolders(rootId)
+                val candidates = buildCandidates(rootId, descendants)
+
+                val coordinator = buildCoordinator(
+                    rootFolderId = rootId,
+                    candidates = candidates,
+                    repo = repo
+                )
+
+                val appliedCount = coordinator.applyResortSuggestions(selectedSuggestions)
+
+                android.widget.Toast.makeText(
+                    this@Chat,
+                    "Перенесено файлов: $appliedCount",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
         }
         messageInput = findViewById(R.id.message_input)
         val sendMessageBtn = findViewById<ImageButton>(R.id.send_mes)
@@ -410,8 +433,6 @@ class Chat : AppCompatActivity() {
                                     android.widget.Toast.LENGTH_SHORT
                                 ).show()
                             } else {
-                                pendingResortSuggestionsV2 = suggestionsV2
-
                                 val sheet = com.test.blabify.presentation.ui.ResortBottomSheet
                                     .newInstance(ArrayList(suggestionsV2))
 

@@ -120,7 +120,6 @@ class AttachmentOrganizationCoordinator(
             )
             applied++
         }
-
         return applied
     }
 
