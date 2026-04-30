@@ -51,7 +51,6 @@ class AttachmentOrganizationCoordinator(
             if (folders.isEmpty()) continue
 
             val evaluation = evaluationCore.evaluate(
-                fileName = file.name ?: "",
                 fileText = textsByFileId[file.id].orEmpty(),
                 candidates = folders
             )
@@ -100,11 +99,30 @@ class AttachmentOrganizationCoordinator(
             )
             if (folders.isEmpty()) continue
 
+            val fileText = textsByFileId[file.id].orEmpty()
+
+            if (fileText.isBlank()) {
+                Log.d(
+                    "AttachmentCoordinator",
+                    "Resort skip: file=${file.name}, reason=text is empty or failed to download"
+                )
+                continue
+            }
+
+            Log.d(
+                "AttachmentCoordinator",
+                "Resort text preview: file=${file.name}, " +
+                        "folderId=${file.classificationFolderId}, " +
+                        "branch=${file.classificationBranch}, " +
+                        "url=${file.url}, " +
+                        "text=${fileText.take(500).replace('\n', ' ')}"
+            )
+
             val evaluation = evaluationCore.evaluate(
-                fileName = file.name ?: "",
-                fileText = textsByFileId[file.id].orEmpty(),
+                fileText = fileText,
                 candidates = folders
             )
+
             val top = evaluation.rankedCandidates
                 .take(5)
                 .joinToString { "${it.folder.path}:${it.finalScore}" }

@@ -6,7 +6,6 @@ package com.test.blabify.domain.api
 
 interface StructuralCorrector {
     suspend fun applyCorrections(
-        fileName: String,
         fileText: String?,
         baseScores: List<BaseCandidateScore>
     ): List<AdjustedCandidateScore>

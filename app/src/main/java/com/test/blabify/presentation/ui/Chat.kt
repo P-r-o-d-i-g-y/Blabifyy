@@ -160,11 +160,20 @@ class Chat : AppCompatActivity() {
                 lifecycleScope.launch {
                     val chatRoomId = intent.getStringExtra("chatroomId") ?: return@launch
                     val userName = intent.getStringExtra("userName") ?: "Аноним"
-                    val fileName = fileUri.lastPathSegment ?: "file"
+
+                    val fileName = getDisplayName(fileUri)
                     val fileSize = getFileSize(fileUri)
+                    Log.d("FileUpload", "Resolved fileName = $fileName")
                     Log.d("FileUpload", "Resolved fileSize = $fileSize bytes")
                     Log.d("FileUpload", "onActivityResult: FILE_PICK_CODE matched and result OK")
-                    val fileUrl = uploadFileToSupabase(this@Chat, fileUri, chatRoomId)
+
+                    val fileUrl = uploadFileToSupabase(
+                        context = this@Chat,
+                        fileUri = fileUri,
+                        chatRoomId = chatRoomId,
+                        originalFileName = fileName
+                    )
+
                     Log.d("FileUpload", "Uploaded fileUrl: $fileUrl")
                     if (fileUrl != null) {
                         val type = contentResolver.getType(fileUri) ?: ""
@@ -212,6 +221,21 @@ class Chat : AppCompatActivity() {
         return contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
             afd.length
         } ?: 0L
+    }
+    private fun getDisplayName(uri: android.net.Uri): String {
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+
+            if (nameIndex >= 0 && cursor.moveToFirst()) {
+                val displayName = cursor.getString(nameIndex)
+
+                if (!displayName.isNullOrBlank()) {
+                    return displayName
+                }
+            }
+        }
+
+        return uri.lastPathSegment ?: "file"
     }
 
     fun sendMessageToUser(chatroomId: String, userName: String, messageText: String? = null, attachmentUrl: String? = null, attachmentType: AttachmentType? = null, fileName: String? = null, fileSize: Long? = null) {

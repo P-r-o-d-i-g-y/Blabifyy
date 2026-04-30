@@ -17,18 +17,15 @@ class AttachmentOrganizationCore(
     private val structuralCorrector: StructuralCorrector
 ) {
     suspend fun evaluate(
-        fileName: String,
         fileText: String?,
         candidates: List<CandidateFolder>
     ): CoreEvaluationResult {
         val baseScores = baseClassifier.scoreCandidates(
-            fileName = fileName,
             fileText = fileText,
             candidates = candidates
         )
 
         val adjustedScores = structuralCorrector.applyCorrections(
-            fileName = fileName,
             fileText = fileText,
             baseScores = baseScores
         ).sortedByDescending { it.finalScore }

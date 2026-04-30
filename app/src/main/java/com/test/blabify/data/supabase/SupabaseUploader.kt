@@ -10,6 +10,7 @@ import io.github.jan.supabase.storage.storage
 import io.github.jan.supabase.storage.Storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 val supabase: SupabaseClient = createSupabaseClient(
     //размарозка
@@ -22,22 +23,41 @@ val supabase: SupabaseClient = createSupabaseClient(
 suspend fun uploadFileToSupabase(
     context: Context,
     fileUri: Uri,
-    chatRoomId: String
+    chatRoomId: String,
+    originalFileName: String
 ): String? = withContext(Dispatchers.IO) {
-    Log.d("SupabaseUploader", "Started loading: file = ${fileUri.lastPathSegment}, chatRoomId = $chatRoomId")
+    val safeFileName = sanitizeFileName(originalFileName)
+    val uniqueFileName = "${UUID.randomUUID()}_$safeFileName"
+
+    Log.d(
+        "SupabaseUploader",
+        "Started loading: originalFileName=$originalFileName, " +
+                "safeFileName=$safeFileName, chatRoomId=$chatRoomId"
+    )
     try {
-        val fileName = fileUri.lastPathSegment ?: "file"
-        val fileBytes = context.contentResolver.openInputStream(fileUri)?.readBytes() ?: return@withContext null
+        val fileBytes = context.contentResolver
+            .openInputStream(fileUri)
+            ?.use { input -> input.readBytes() }
+            ?: return@withContext null
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@withContext null
-        val path = "$uid/$chatRoomId/$fileName"
+
+        val path = "$uid/$chatRoomId/$uniqueFileName"
         val bucket = supabase.storage.from("chat-files")
+
         bucket.upload(path, fileBytes)
         Log.d("SupabaseUploader", "File uploaded: $path")
 
         return@withContext bucket.publicUrl(path)
     } catch (e: Exception) {
-        e.printStackTrace()
+        Log.e("SupabaseUploader", "Upload failed: ${e.message}", e)
         return@withContext null
     }
+}
+private fun sanitizeFileName(fileName: String): String {
+    return fileName
+        .trim()
+        .ifBlank { "file" }
+        .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+        .replace(Regex("\\s+"), "_")
 }

@@ -28,8 +28,25 @@ data class ResortSuggestionV2(
  * стоит ли предложить пользователю перенос.
  */
 class ResortContour(
-    private val rootMinBestScore: Double = 0.5,
+    //private val rootMinBestScore: Double = 0.5,
+    /**
+     * Минимальный выигрыш, чтобы разрешить перенос между разными ветками.
+     *
+     * Нужен, чтобы не вытаскивать файл из уже существующей папки
+     * в другую ветку из-за слабого/общего совпадения.
+     */
+    private val minCrossBranchMoveGain: Double = 1.0,
 
+    /**
+     * Запрещает перенос между разными ветками, если целевая папка
+     * является более общей папкой с тем же последним сегментом.
+     *
+     * Пример:
+     * dog/puppy -> puppy запрещаем.
+     *
+     * Это слишком неоднозначный перенос для автоматической пересортировки.
+     */
+    private val preventSameLeafCrossBranchMove: Boolean = true,
     /**
      * Маленький штраф за сам факт переноса файла.
      */
@@ -43,7 +60,31 @@ class ResortContour(
     /**
      * Защита от погрешностей Double.
      */
-    private val epsilon: Double = 0.000001
+    private val epsilon: Double = 0.000001,
+    /**
+     * Минимальный score лучшей папки.
+     * Защищает от переносов на score=0.0 или около того.
+     */
+    private val minBestScore: Double = 0.5,
+
+    /**
+     * Минимальный разрыв между 1-м и 2-м кандидатом.
+     * Защищает от спорных случаев типа:
+     * puppy/Max:1.72 и dog/puppy:1.72.
+     */
+    private val minConfidenceGap: Double = 0.15,
+    /**
+     * Для перехода между ветками требуем больший разрыв.
+     */
+    private val crossBranchMinConfidenceGap: Double = 0.25,
+    /**
+     * Минимальная выгода переноса.
+     */
+    private val minMoveGain: Double = 0.15,
+    /**
+     * Для перехода между ветками требуем большую выгоду.
+     */
+    private val crossBranchMinMoveGain: Double = 0.35,
 ) {
     sealed interface Decision {
         data object Skip : Decision
@@ -160,10 +201,64 @@ class ResortContour(
         val bestPolicyCandidate = policyCandidates.firstOrNull()
             ?: return skip("no policy candidates")
 
+        val policyConfidenceGap = if (policyCandidates.size > 1) {
+            policyCandidates[0].effectiveScore - policyCandidates[1].effectiveScore
+        } else {
+            Double.MAX_VALUE
+        }
+
         val best = bestPolicyCandidate.candidate
         val targetBranch = bestPolicyCandidate.branch
         val sameBranch = bestPolicyCandidate.sameBranch
         val moveGain = best.finalScore - currentScore
+
+        if (
+            !fileIsInRoot &&
+            preventSameLeafCrossBranchMove &&
+            !bestPolicyCandidate.isCurrentFolder &&
+            isSameLeafCrossBranchBroadMove(
+                currentPath = currentPath,
+                targetPath = best.folder.path
+            )
+        ) {
+            return skip(
+                "ambiguous same-leaf cross-branch broad move: " +
+                        "currentPath=$currentPath, " +
+                        "targetPath=${best.folder.path}, " +
+                        "currentScore=$currentScore, " +
+                        "targetScore=${best.finalScore}, " +
+                        "moveGain=$moveGain"
+            )
+        }
+
+        if (
+            !fileIsInRoot &&
+            bestPolicyCandidate.isCrossBranch &&
+            moveGain < minCrossBranchMoveGain
+        ) {
+            return skip(
+                "cross-branch move gain is too small: " +
+                        "currentPath=$currentPath, " +
+                        "targetPath=${best.folder.path}, " +
+                        "currentScore=$currentScore, " +
+                        "targetScore=${best.finalScore}, " +
+                        "moveGain=$moveGain, " +
+                        "requiredGain=$minCrossBranchMoveGain"
+            )
+        }
+
+
+        val requiredGap = if (bestPolicyCandidate.isCrossBranch) {
+            crossBranchMinConfidenceGap
+        } else {
+            minConfidenceGap
+        }
+
+        val requiredMoveGain = if (bestPolicyCandidate.isCrossBranch) {
+            crossBranchMinMoveGain
+        } else {
+            minMoveGain
+        }
 
         Log.d(
             "ResortContour",
@@ -183,10 +278,33 @@ class ResortContour(
          * Просто проверяем, что лучшая папка достаточно хорошая.
          */
         if (fileIsInRoot) {
-            if (best.finalScore < rootMinBestScore) {
+            if (best.finalScore + epsilon < minBestScore) {
                 return skip(
-                    "root file low bestScore=${best.finalScore}, " +
-                            "threshold=$rootMinBestScore, best=${best.folder.path}"
+                    "root raw score too small: " +
+                            "bestScore=${best.finalScore}, " +
+                            "minBestScore=$minBestScore, " +
+                            "best=${best.folder.path}"
+                )
+            }
+
+            if (
+                policyCandidates.size > 1 &&
+                policyConfidenceGap + epsilon < requiredGap
+            ) {
+                return skip(
+                    "root confidence gap too small: " +
+                            "gap=$confidenceGap, " +
+                            "minGap=$minConfidenceGap, " +
+                            "best=${best.folder.path}"
+                )
+            }
+            if (bestPolicyCandidate.effectiveScore <= currentScore + epsilon) {
+                return skip(
+                    "root target is not better than root: " +
+                            "currentScore=$currentScore, " +
+                            "bestScore=${best.finalScore}, " +
+                            "effectiveScore=${bestPolicyCandidate.effectiveScore}, " +
+                            "best=${best.folder.path}"
                 )
             }
 
@@ -218,14 +336,55 @@ class ResortContour(
                         "effectiveScore=${bestPolicyCandidate.effectiveScore}"
             )
         }
+        if (best.finalScore + epsilon < minBestScore) {
+            return skip(
+                "raw score too small: " +
+                        "bestScore=${best.finalScore}, " +
+                        "minBestScore=$minBestScore, " +
+                        "best=${best.folder.path}, " +
+                        "currentPath=$currentPath"
+            )
+        }
+
+        if (
+            evaluation.rankedCandidates.size > 1 &&
+            confidenceGap + epsilon < requiredGap
+        ) {
+            return skip(
+                "confidence gap too small: " +
+                        "gap=$confidenceGap, " +
+                        "requiredGap=$requiredGap, " +
+                        "best=${best.folder.path}, " +
+                        "currentPath=$currentPath, " +
+                        "crossBranch=${bestPolicyCandidate.isCrossBranch}"
+            )
+        }
 
         /**
          * Если новая папка после штрафа не лучше текущей,
          * перенос не предлагаем.
          */
-        if (bestPolicyCandidate.effectiveScore <= currentScore + epsilon) {
+        val effectiveMoveGain = bestPolicyCandidate.effectiveScore - currentScore
+
+        /**
+         * Если выгода переноса слишком маленькая,
+         * перенос не предлагаем.
+         *
+         * Это сильнее, чем просто:
+         * effectiveScore > currentScore.
+         *
+         * Например:
+         * currentScore = 1.70
+         * effectiveScore = 1.72
+         *
+         * Формально новая папка лучше, но разница слишком маленькая,
+         * поэтому файл лучше не трогать.
+         */
+        if (effectiveMoveGain + epsilon < requiredMoveGain) {
             return skip(
-                "target is not better after penalty: " +
+                "move gain too small: " +
+                        "effectiveMoveGain=$effectiveMoveGain, " +
+                        "requiredMoveGain=$requiredMoveGain, " +
                         "currentScore=$currentScore, " +
                         "bestScore=${best.finalScore}, " +
                         "penalty=${bestPolicyCandidate.penalty}, " +
@@ -304,5 +463,55 @@ class ResortContour(
             .split('/')
             .firstOrNull()
             ?.takeIf { it.isNotBlank() }
+    }
+    private fun pathPartsOf(path: String?): List<String> {
+        if (path.isNullOrBlank()) {
+            return emptyList()
+        }
+
+        if (path == "(корень)") {
+            return emptyList()
+        }
+
+        return path
+            .split('/')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+    }
+
+    private fun leafNameOf(path: String?): String? {
+        return pathPartsOf(path).lastOrNull()
+    }
+
+    private fun depthOf(path: String?): Int {
+        return pathPartsOf(path).size
+    }
+
+    private fun isSameLeafCrossBranchBroadMove(
+        currentPath: String,
+        targetPath: String
+    ): Boolean {
+        val currentLeaf = leafNameOf(currentPath)
+        val targetLeaf = leafNameOf(targetPath)
+
+        if (currentLeaf == null || targetLeaf == null) {
+            return false
+        }
+
+        val currentBranch = branchNameOf(currentPath)
+        val targetBranch = branchNameOf(targetPath)
+
+        val isCrossBranch = currentBranch != null &&
+                targetBranch != null &&
+                currentBranch != targetBranch
+
+        if (!isCrossBranch) {
+            return false
+        }
+
+        val sameLeaf = currentLeaf.equals(targetLeaf, ignoreCase = true)
+        val targetIsNotDeeper = depthOf(targetPath) <= depthOf(currentPath)
+
+        return sameLeaf && targetIsNotDeeper
     }
 }

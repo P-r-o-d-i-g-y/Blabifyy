@@ -23,11 +23,10 @@ class RuleBasedBaseClassifier : BaseFileClassifier {
     }
 
     override suspend fun scoreCandidates(
-        fileName: String,
         fileText: String?,
         candidates: List<CandidateFolder>
     ): List<BaseCandidateScore> {
-        val text = (fileName + " " + (fileText ?: "")).lowercase()
+        val text = fileText.orEmpty().lowercase()
 
         return candidates.map { candidate ->
             BaseCandidateScore(
