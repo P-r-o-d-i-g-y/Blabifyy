@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.android.application)
@@ -6,9 +8,27 @@ plugins {
     kotlin("plugin.serialization") version "2.1.0"
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { stream ->
+        localProperties.load(stream)
+    }
+}
+
+val gigachatAuthKey = localProperties
+    .getProperty("GIGACHAT_AUTH_KEY", "")
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+
 android {
     namespace = "com.test.blabify"
     compileSdk = 34
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "com.test.blabify"
@@ -18,6 +38,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "GIGACHAT_AUTH_KEY",
+            "\"$gigachatAuthKey\""
+        )
     }
 
     buildTypes {
@@ -42,6 +68,9 @@ dependencies {
     implementation(libs.glide)
     annotationProcessor(libs.glide.compiler)
     //kapt(libs.glide.compiler)
+
+    //мл
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
