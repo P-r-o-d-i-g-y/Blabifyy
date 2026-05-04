@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 class GigaChatEmbeddingProvider(
     private val authKey: String = BuildConfig.GIGACHAT_AUTH_KEY,
     private val scope: String = "GIGACHAT_API_PERS",
-    private val model: String = "Embeddings"
+    private val model: String = "Embeddings-2"
 ) : EmbeddingProvider {
 
     private val client = OkHttpClient.Builder()
