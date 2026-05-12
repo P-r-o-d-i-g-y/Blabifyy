@@ -27,6 +27,8 @@ import com.test.blabify.presentation.adapters.MessageAdapter
 import kotlinx.coroutines.launch
 import java.util.UUID
 import com.test.blabify.data.repositories.FirestoreRepositoryImpl
+import com.test.blabify.domain.impl.embedding.EmbeddingBaseClassifier
+import com.test.blabify.domain.impl.embedding.GigaChatEmbeddingProvider
 import com.test.blabify.presentation.ui.widgets.ColorPopup
 import com.test.blabify.presentation.adapters.ColorMenuItem
 import kotlinx.coroutines.tasks.await
@@ -533,7 +535,10 @@ class Chat : AppCompatActivity() {
                 )
             },
             evaluationCore = com.test.blabify.domain.usecases.AttachmentOrganizationCore(
-                baseClassifier = com.test.blabify.domain.impl.RuleBasedBaseClassifier(),
+                //baseClassifier = com.test.blabify.domain.impl.RuleBasedBaseClassifier(),
+                baseClassifier = EmbeddingBaseClassifier(
+                    embeddingProvider = GigaChatEmbeddingProvider()
+                ),
                 structuralCorrector = com.test.blabify.domain.impl.DefaultStructuralCorrector()
             ),
             primaryPlacementContour = com.test.blabify.domain.usecases.PrimaryPlacementContour(),

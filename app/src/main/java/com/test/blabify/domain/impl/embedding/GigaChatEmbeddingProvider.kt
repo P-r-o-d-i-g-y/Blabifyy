@@ -82,6 +82,8 @@ class GigaChatEmbeddingProvider(
             accessToken = json.getString("access_token")
             expiresAt = json.optLong("expires_at", System.currentTimeMillis() + DEFAULT_TOKEN_TTL_MS)
 
+            Log.d("GigaChatEmbeddingProvider", "GigaChat access token received")
+
             return accessToken.orEmpty()
         }
     }
