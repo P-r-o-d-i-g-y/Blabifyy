@@ -36,7 +36,7 @@ class ResortContour(
      * в другую ветку из-за слабого/общего совпадения.
      */
     private val minCrossBranchMoveGain: Double = 1.0,
-
+    private val moveCooldownMs: Long = 24L * 60 * 60 * 1000,
     /**
      * Запрещает перенос между разными ветками, если целевая папка
      * является более общей папкой с тем же последним сегментом.
@@ -119,6 +119,15 @@ class ResortContour(
 
         if (file.pinned == true) {
             return skip("pinned")
+        }
+
+        if (file.movedAt != null) {
+            val elapsedMs = System.currentTimeMillis() - file.movedAt
+            val remainingMs = moveCooldownMs - elapsedMs
+
+            if (remainingMs > 0) {
+                return skip("cooldown: remaining=${formatDuration(remainingMs)}")
+            }
         }
 
         if (evaluation.rankedCandidates.isEmpty()) {
@@ -485,6 +494,19 @@ class ResortContour(
 
     private fun depthOf(path: String?): Int {
         return pathPartsOf(path).size
+    }
+
+    private fun formatDuration(ms: Long): String {
+        val totalMinutes = ms / 60_000
+        val days = totalMinutes / (24 * 60)
+        val hours = (totalMinutes % (24 * 60)) / 60
+        val minutes = totalMinutes % 60
+
+        return when {
+            days > 0 -> "${days}d ${hours}h ${minutes}m"
+            hours > 0 -> "${hours}h ${minutes}m"
+            else -> "${minutes}m"
+        }
     }
 
     private fun isSameLeafCrossBranchBroadMove(

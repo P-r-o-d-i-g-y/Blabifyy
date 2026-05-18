@@ -9,7 +9,7 @@ import com.test.blabify.domain.models.OrganizableFile
 
 class PrimaryPlacementContour(
     private val confidenceThreshold: Double = 0.5,
-    private val moveCooldownMs: Long = 7L * 24 * 60 * 60 * 1000
+    //private val moveCooldownMs: Long = 7L * 24 * 60 * 60 * 1000
 ) {
     sealed interface Decision {
         data object Skip : Decision
@@ -27,13 +27,13 @@ class PrimaryPlacementContour(
         file: OrganizableFile,
         evaluation: CoreEvaluationResult
     ): Decision {
-        if (file.pinned == true) {
+        /*if (file.pinned == true) {
             return Decision.Skip
-        }
+        }*/
 
-        if (file.movedAt != null && System.currentTimeMillis() - file.movedAt < moveCooldownMs) {
+        /*if (file.movedAt != null && System.currentTimeMillis() - file.movedAt < moveCooldownMs) {
             return Decision.Skip
-        }
+        }*/
 
         val best = evaluation.rankedCandidates.firstOrNull() ?: return Decision.Skip
         val confidenceGap = evaluation.decision.confidenceGap
