@@ -40,27 +40,65 @@ class AttachmentOrganizationCoordinator(
     private val primaryPlacementContour: PrimaryPlacementContour,
     private val resortContour: ResortContour
 ) {
+
+    suspend fun handleNewFileUploaded() {
+        runPrimaryPlacement()
+    }
+
     suspend fun runPrimaryPlacement() {
         Log.d("AttachmentCoordinator", "Starting primary placement")
 
         val folders = getFolders()
         val files = getPrimaryFiles()
         val textsByFileId = preloadTexts(files)
-
+        Log.d(
+            "AttachmentCoordinator",
+            "Primary input: folders=${folders.size}, files=${files.size}, " +
+                    "candidatePaths=${folders.joinToString { it.path }}"
+        )
         for (file in files) {
-            if (folders.isEmpty()) continue
+            if (folders.isEmpty()) {
+                Log.d("AttachmentCoordinator", "Primary skip: no folders")
+                continue
+            }
+            val fileText = textsByFileId[file.id].orEmpty()
 
+            Log.d(
+                "AttachmentCoordinator",
+                "Primary file=${file.name}, textBlank=${fileText.isBlank()}, " +
+                        "text=${fileText.take(300).replace('\n', ' ')}"
+            )
+            if (fileText.isBlank()) {
+                Log.d(
+                    "AttachmentCoordinator",
+                    "Primary skip: file=${file.name}, reason=text is empty or failed to download"
+                )
+                continue
+            }
             val evaluation = evaluationCore.evaluate(
                 fileText = textsByFileId[file.id].orEmpty(),
                 candidates = folders
             )
+            val top = evaluation.rankedCandidates
+                .take(5)
+                .joinToString {
+                    "${it.folder.path}: base=${it.baseScore}, " +
+                            "corr=${it.structuralCorrection}, final=${it.finalScore}"
+                }
 
+            Log.d(
+                "AttachmentCoordinator",
+                "Primary best for ${file.name}: " +
+                        "best=${evaluation.decision.best?.folder?.path}, " +
+                        "gap=${evaluation.decision.confidenceGap}, top=$top"
+            )
             when (val decision = primaryPlacementContour.decide(file, evaluation)) {
                 is PrimaryPlacementContour.Decision.Skip -> Unit
                 is PrimaryPlacementContour.Decision.Move -> {
                     Log.d(
                         "AttachmentCoordinator",
-                        "Move ${decision.fileId} -> ${decision.targetFolderId} (${decision.targetFolderPath})"
+                        "Primary move ${decision.fileId} -> " +
+                                "${decision.targetFolderId} (${decision.targetFolderPath})"
                     )
                     moveFile(
                         decision.fileId,

@@ -37,6 +37,18 @@ class DefaultStructuralCorrector(
             .split(Regex("[^a-z0-9а-яё]+"))
             .filter { it.length >= 2 }
 
+    private fun limitStructuralCorrection(
+        correction: Double
+    ): Double {
+        val maxPenalty = 0.15
+        val maxBonus = 0.20
+
+        return correction.coerceIn(
+            minimumValue = -maxPenalty,
+            maximumValue = maxBonus
+        )
+    }
+
     private fun calculateStructuralCorrection(
         textLower: String,
         candidate: CandidateFolder
@@ -129,6 +141,7 @@ class DefaultStructuralCorrector(
         return ancestorsBonus + depthBias - missingAncestorPenalty - leafOnlyPenalty
     }
 
+
     override suspend fun applyCorrections(
         fileText: String?,
         baseScores: List<BaseCandidateScore>
@@ -137,9 +150,12 @@ class DefaultStructuralCorrector(
 
         return baseScores
             .map { base ->
-                val structuralCorrection = calculateStructuralCorrection(
+                val rawStructuralCorrection  = calculateStructuralCorrection(
                     textLower = textLower,
                     candidate = base.folder
+                )
+                val structuralCorrection = limitStructuralCorrection(
+                    correction = rawStructuralCorrection
                 )
 
                 AdjustedCandidateScore(

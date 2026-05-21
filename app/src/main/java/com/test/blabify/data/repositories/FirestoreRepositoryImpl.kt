@@ -130,7 +130,7 @@ class FirestoreRepositoryImpl : FirestoreRepository {
         }
     }
 
-    // --- НОВОЕ: все потомки (BFS) ---
+    //все потомки (BFS)
     override suspend fun getDescendantFolders(rootId: String): List<Folder> {
         val snap = db.collection("folders")
             .whereEqualTo("rootFolderId", rootId)
@@ -151,9 +151,9 @@ class FirestoreRepositoryImpl : FirestoreRepository {
                     isOpened = false
                 )
             }
-            .filter { it.id != rootId }  // как раньше: возвращаем только потомков, без корня
+            .filter { it.id != rootId }
     }
-    //для одного запроса по всем файлам ветки (ускорение)
+    //для одного запроса по всем файлам ветки
     override suspend fun getAllFilesForRoot(rootId: String): List<OrganizableFile> {
         val snap = db.collectionGroup("files")
             .whereEqualTo("rootFolderId", rootId)

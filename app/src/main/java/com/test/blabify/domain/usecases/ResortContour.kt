@@ -35,8 +35,8 @@ class ResortContour(
      * Нужен, чтобы не вытаскивать файл из уже существующей папки
      * в другую ветку из-за слабого/общего совпадения.
      */
-    private val minCrossBranchMoveGain: Double = 1.0,
-    private val moveCooldownMs: Long = 24L * 60 * 60 * 1000,
+    private val minCrossBranchMoveGain: Double = 0.10,
+    //private val moveCooldownMs: Long = 24L * 60 * 60 * 1000,
     /**
      * Запрещает перенос между разными ветками, если целевая папка
      * является более общей папкой с тем же последним сегментом.
@@ -55,7 +55,7 @@ class ResortContour(
     /**
      * Дополнительный маленький штраф за переход в другую ветку.
      */
-    private val crossBranchPenalty: Double = 0.08,
+    private val crossBranchPenalty: Double = 0.03,
 
     /**
      * Защита от погрешностей Double.
@@ -76,7 +76,7 @@ class ResortContour(
     /**
      * Для перехода между ветками требуем больший разрыв.
      */
-    private val crossBranchMinConfidenceGap: Double = 0.25,
+    private val crossBranchMinConfidenceGap: Double = 0.05,
     /**
      * Минимальная выгода переноса.
      */
@@ -84,7 +84,8 @@ class ResortContour(
     /**
      * Для перехода между ветками требуем большую выгоду.
      */
-    private val crossBranchMinMoveGain: Double = 0.35,
+    private val crossBranchMinMoveGain: Double = 0.10,
+    private val targetParentSupportTolerance: Double = 0.05
 ) {
     sealed interface Decision {
         data object Skip : Decision
@@ -121,14 +122,14 @@ class ResortContour(
             return skip("pinned")
         }
 
-        if (file.movedAt != null) {
+        /*if (file.movedAt != null) {
             val elapsedMs = System.currentTimeMillis() - file.movedAt
             val remainingMs = moveCooldownMs - elapsedMs
 
             if (remainingMs > 0) {
                 return skip("cooldown: remaining=${formatDuration(remainingMs)}")
             }
-        }
+        }*/
 
         if (evaluation.rankedCandidates.isEmpty()) {
             return skip("no ranked candidates")
@@ -205,13 +206,39 @@ class ResortContour(
                     sameBranch = sameBranch
                 )
             }
-            .sortedByDescending { it.effectiveScore }
+            .sortedWith(
+                compareByDescending<PolicyCandidate> { it.effectiveScore }
+                    .thenByDescending { it.candidate.finalScore }
+                    .thenByDescending { depthOf(it.candidate.folder.path) }
+            )
 
-        val bestPolicyCandidate = policyCandidates.firstOrNull()
-            ?: return skip("no policy candidates")
 
-        val policyConfidenceGap = if (policyCandidates.size > 1) {
-            policyCandidates[0].effectiveScore - policyCandidates[1].effectiveScore
+        val allowedPolicyCandidates = policyCandidates.filter { policyCandidate ->
+            val isBlockedSameLeafMove =
+                !fileIsInRoot &&
+                        preventSameLeafCrossBranchMove &&
+                        !policyCandidate.isCurrentFolder &&
+                        isSameLeafCrossBranchBroadMove(
+                            currentPath = currentPath,
+                            targetPath = policyCandidate.candidate.folder.path
+                        )
+
+            if (isBlockedSameLeafMove) {
+                Log.d(
+                    "ResortContour",
+                    "Reject candidate file=${file.name}, " +
+                            "target=${policyCandidate.candidate.folder.path}, " +
+                            "reason=ambiguous same-leaf cross-branch broad move"
+                )
+            }
+
+            !isBlockedSameLeafMove
+        }
+        val bestPolicyCandidate = allowedPolicyCandidates.firstOrNull()
+            ?: return skip("no allowed policy candidates")
+
+        val policyConfidenceGap = if (allowedPolicyCandidates.size > 1) {
+            allowedPolicyCandidates[0].effectiveScore - allowedPolicyCandidates[1].effectiveScore
         } else {
             Double.MAX_VALUE
         }
@@ -221,7 +248,33 @@ class ResortContour(
         val sameBranch = bestPolicyCandidate.sameBranch
         val moveGain = best.finalScore - currentScore
 
+        val scoreByPath = evaluation.rankedCandidates.associate { ranked ->
+            ranked.folder.path to ranked.finalScore
+        }
+
+        val targetParentPath = parentPathOf(best.folder.path)
+        val targetParentScore = targetParentPath?.let { parentPath ->
+            scoreByPath[parentPath]
+        }
+
         if (
+            !fileIsInRoot &&
+            bestPolicyCandidate.isCrossBranch &&
+            targetParentPath != null &&
+            targetParentScore != null &&
+            targetParentScore + targetParentSupportTolerance < currentScore
+        ) {
+            return skip(
+                "target parent is weaker than current folder: " +
+                        "currentPath=$currentPath, " +
+                        "currentScore=$currentScore, " +
+                        "targetPath=${best.folder.path}, " +
+                        "targetParentPath=$targetParentPath, " +
+                        "targetParentScore=$targetParentScore, " +
+                        "tolerance=$targetParentSupportTolerance"
+            )
+        }
+        /*if (
             !fileIsInRoot &&
             preventSameLeafCrossBranchMove &&
             !bestPolicyCandidate.isCurrentFolder &&
@@ -238,7 +291,7 @@ class ResortContour(
                         "targetScore=${best.finalScore}, " +
                         "moveGain=$moveGain"
             )
-        }
+        }*/
 
         if (
             !fileIsInRoot &&
@@ -287,32 +340,29 @@ class ResortContour(
          * Просто проверяем, что лучшая папка достаточно хорошая.
          */
         if (fileIsInRoot) {
-            if (best.finalScore + epsilon < minBestScore) {
-                return skip(
-                    "root raw score too small: " +
-                            "bestScore=${best.finalScore}, " +
-                            "minBestScore=$minBestScore, " +
-                            "best=${best.folder.path}"
-                )
-            }
+            val rootMoveGain = bestPolicyCandidate.effectiveScore - currentScore
 
-            if (
-                policyCandidates.size > 1 &&
-                policyConfidenceGap + epsilon < requiredGap
-            ) {
-                return skip(
-                    "root confidence gap too small: " +
-                            "gap=$confidenceGap, " +
-                            "minGap=$minConfidenceGap, " +
-                            "best=${best.folder.path}"
-                )
-            }
-            if (bestPolicyCandidate.effectiveScore <= currentScore + epsilon) {
+            if (rootMoveGain <= epsilon) {
                 return skip(
                     "root target is not better than root: " +
                             "currentScore=$currentScore, " +
                             "bestScore=${best.finalScore}, " +
                             "effectiveScore=${bestPolicyCandidate.effectiveScore}, " +
+                            "best=${best.folder.path}"
+                )
+            }
+
+            val secondHasPositiveScore =
+                policyCandidates.getOrNull(1)?.effectiveScore?.let { it > epsilon } == true
+
+            if (
+                secondHasPositiveScore &&
+                policyConfidenceGap + epsilon < requiredGap
+            ) {
+                return skip(
+                    "root confidence gap too small: " +
+                            "gap=$policyConfidenceGap, " +
+                            "requiredGap=$requiredGap, " +
                             "best=${best.folder.path}"
                 )
             }
@@ -326,7 +376,7 @@ class ResortContour(
                 targetScore = best.finalScore,
                 confidenceGap = confidenceGap,
                 currentScore = currentScore,
-                moveGain = moveGain,
+                moveGain = rootMoveGain,
                 sameBranch = sameBranch,
                 penalty = bestPolicyCandidate.penalty,
                 effectiveScore = bestPolicyCandidate.effectiveScore,
@@ -356,12 +406,12 @@ class ResortContour(
         }
 
         if (
-            evaluation.rankedCandidates.size > 1 &&
-            confidenceGap + epsilon < requiredGap
+            allowedPolicyCandidates.size > 1 &&
+            policyConfidenceGap + epsilon < requiredGap
         ) {
             return skip(
-                "confidence gap too small: " +
-                        "gap=$confidenceGap, " +
+                "policy confidence gap too small: " +
+                        "gap=$policyConfidenceGap, " +
                         "requiredGap=$requiredGap, " +
                         "best=${best.folder.path}, " +
                         "currentPath=$currentPath, " +
@@ -488,12 +538,35 @@ class ResortContour(
             .filter { it.isNotBlank() }
     }
 
+    private fun parentPathOf(path: String?): String? {
+        val parts = pathPartsOf(path)
+
+        if (parts.size <= 1) {
+            return null
+        }
+
+        return parts
+            .dropLast(1)
+            .joinToString("/")
+    }
     private fun leafNameOf(path: String?): String? {
         return pathPartsOf(path).lastOrNull()
     }
 
     private fun depthOf(path: String?): Int {
-        return pathPartsOf(path).size
+        if (path.isNullOrBlank()) {
+            return 0
+        }
+
+        if (path == "(корень)") {
+            return 0
+        }
+
+        return path
+            .split('/')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .size
     }
 
     private fun formatDuration(ms: Long): String {

@@ -539,7 +539,7 @@ class Chat : AppCompatActivity() {
                 baseClassifier = EmbeddingBaseClassifier(
                     embeddingProvider = GigaChatEmbeddingProvider()
                 ),
-                structuralCorrector = com.test.blabify.domain.impl.DefaultStructuralCorrector()
+                structuralCorrector = com.test.blabify.domain.impl.ScoreBasedStructuralCorrector()
             ),
             primaryPlacementContour = com.test.blabify.domain.usecases.PrimaryPlacementContour(),
             resortContour = com.test.blabify.domain.usecases.ResortContour()
